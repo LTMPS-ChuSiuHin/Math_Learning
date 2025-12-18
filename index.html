@@ -1,831 +1,596 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小學數學智能練習平台 (Ver 10.2)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <title>速算達人</title>
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --secondary-gradient: linear-gradient(120deg, #89f7fe 0%, #66a6ff 100%);
-            --accent-color: #ff9a9e;
-            --success-color: #43e97b;
-            --success-bg: #eafaf1;
-            --error-color: #ff5f6d;
-            --error-bg: #fff0f1;
-            --text-main: #2d3436;
-            --text-light: #636e72;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --bg-color: #e0eafc;
-        }
-
+        /* --- CSS 樣式 --- */
         body {
-            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
-            background: var(--bg-color);
-            background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%); 
-            background-image: radial-gradient(#a3bded 1px, transparent 1px);
-            background-size: 20px 20px;
-            color: var(--text-main);
-            margin: 0;
-            padding: 40px 20px;
+            font-family: 'Arial', sans-serif;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
             min-height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+            color: #333;
         }
 
-        h1 { 
-            margin-bottom: 25px; 
-            color: #2d3436; 
-            font-weight: 800; 
-            font-size: 2.2rem;
-            text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
-            letter-spacing: 1px;
-        }
-
-        /* Main Container */
         .container {
-            max-width: 950px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        /* 選擇介面 */
+        .selection-panel {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #555;
+        }
+
+        select, button.start-btn {
             width: 100%;
-            background: var(--card-bg);
-            padding: 40px;
-            border-radius: 24px;
-            box-shadow: 
-                0 20px 50px rgba(0,0,0,0.1), 
-                0 0 0 1px rgba(255,255,255,0.5) inset;
-            backdrop-filter: blur(10px);
-            position: relative;
-            overflow: hidden;
-            min-height: 600px;
-        }
-
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 6px;
-            background: var(--primary-gradient);
-        }
-
-        /* Navigation */
-        .nav-bar {
-            display: flex;
-            align-items: center;
-            margin-bottom: 30px;
-            font-size: 1.1rem;
-            color: var(--text-light);
-            background: #f8f9fa;
-            padding: 15px 25px;
-            border-radius: 16px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.03);
-        }
-        .nav-btn {
-            background: none;
-            border: none;
-            color: #6c5ce7;
-            cursor: pointer;
-            font-weight: 700;
-            padding: 5px 10px;
-            font-size: 1em;
+            padding: 10px;
+            margin-bottom: 15px;
             border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .nav-btn:hover { background: #e0e0ff; transform: translateY(-1px); }
-        .separator { margin: 0 10px; color: #b2bec3; }
-
-        /* Main Menu Grid */
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 20px;
-        }
-        .menu-card {
-            background: #fff;
-            border-radius: 24px;
-            padding: 40px;
-            text-align: center;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            box-sizing: border-box;
             cursor: pointer;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
         }
-        .menu-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(108, 92, 231, 0.2);
-            border-color: #a29bfe;
-        }
-        .menu-icon { font-size: 4rem; margin-bottom: 20px; display: block; }
-        .menu-title { font-size: 1.8rem; font-weight: 800; color: #2d3436; }
-        .menu-desc { color: #636e72; margin-top: 10px; font-size: 1.1rem; }
 
-        /* Topic Grid */
-        .topic-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-        }
-        .topic-card {
-            background: #fff;
+        button.start-btn {
+            background-color: #28a745;
+            color: white;
             border: none;
-            border-radius: 20px;
-            padding: 25px 20px;
-            text-align: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            overflow: hidden;
+            font-weight: bold;
+            transition: background-color 0.3s;
         }
-        .topic-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 15px 30px rgba(108, 92, 231, 0.15); }
-        .topic-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: #dfe6e9; transition: background 0.3s; }
-        .topic-card:hover::after { background: linear-gradient(90deg, #667eea, #764ba2); }
-        .topic-card.disabled { background: #f1f2f6; opacity: 0.7; cursor: not-allowed; box-shadow: none; }
-        .topic-card.disabled:hover { transform: none; }
-        .topic-num { display: block; font-size: 0.9em; color: #a4b0be; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .topic-title { font-weight: 800; font-size: 1.1em; color: var(--text-main); }
 
-        /* Type Menu */
-        .type-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
-        .type-btn { padding: 25px; border: none; border-radius: 18px; color: white; font-size: 1.1em; font-weight: 700; cursor: pointer; text-align: left; transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden; box-shadow: 0 8px 20px -5px rgba(0,0,0,0.2); }
-        .type-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px -5px rgba(0,0,0,0.3); }
-        .type-btn small { display: block; font-weight: 400; font-size: 0.8em; margin-top: 5px; opacity: 0.9; }
-        .type-btn.disabled { background: #dfe6e9; color: #b2bec3; cursor: not-allowed; transform: none; box-shadow: none; }
+        button.start-btn:hover {
+            background-color: #218838;
+        }
+
+        /* 遊戲介面 */
+        .game-panel {
+            display: none;
+        }
+
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
         
-        .bg-green { background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%); }
-        .bg-blue { background: linear-gradient(135deg, #0575E6 0%, #021B79 100%); }
-        .bg-orange { background: linear-gradient(135deg, #FF8008 0%, #FFC837 100%); }
-        .bg-purple { background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%); }
-        .bg-teal { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        #timer {
+            color: #dc3545;
+        }
 
-        /* Question & Notes Area */
-        .content-area { animation: slideIn 0.4s ease; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        #score {
+            color: #007bff;
+        }
 
-        .visual-area { display: flex; justify-content: center; align-items: center; gap: 40px; background: #ffffff; border: 2px solid #f1f2f6; border-radius: 20px; padding: 40px 20px; min-height: 350px; overflow-x: auto; box-shadow: inset 0 0 30px rgba(0,0,0,0.02); margin-bottom: 30px; }
-        .arrow-indicator { font-size: 3rem; color: var(--accent-color); font-weight: bold; align-self: center; margin-bottom: 50px; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.1)); }
+        .question {
+            font-size: 3em;
+            margin: 40px 0;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            font-size: 1.5em;
+            background-color: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .option-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        /* 閃爍效果 */
+        .correct-flash {
+            animation: flash-green 0.2s ease-in-out;
+            background-color: #28a745 !important; /* 綠色 */
+            color: white;
+        }
+
+        .wrong-flash {
+            animation: flash-red 0.2s ease-in-out;
+            background-color: #dc3545 !important; /* 紅色 */
+            color: white;
+        }
+
+        @keyframes flash-green {
+            0% { background-color: #f8f9fa; color: #333;}
+            50% { background-color: #28a745; color: white;}
+            100% { background-color: #f8f9fa; color: #333;}
+        }
+
+        @keyframes flash-red {
+            0% { background-color: #f8f9fa; color: #333;}
+            50% { background-color: #dc3545; color: white;}
+            100% { background-color: #f8f9fa; color: #333;}
+        }
         
-        .question-text, .note-text { font-size: 1.4em; line-height: 1.6; padding: 25px; background: #f8fbfd; border-left: 6px solid #6c5ce7; border-radius: 12px; color: #2d3436; box-shadow: 0 5px 15px rgba(0,0,0,0.03); margin-bottom: 30px; }
-        .note-text { border-left-color: #00b894; background: #f0fdf4; }
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
 
-        .input-area { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; background: #fff; padding: 30px; border-radius: 16px; border: 1px solid #eee; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        input[type="text"], input[type="number"] { padding: 15px 20px; font-size: 1.3em; width: 180px; border: 2px solid #dfe6e9; border-radius: 12px; outline: none; transition: all 0.2s; background: #f9f9f9; font-family: inherit; color: #2d3436; }
-        input:focus { border-color: #6c5ce7; background: #fff; box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1); }
+        /* 結果介面 */
+        .result-panel {
+            display: none;
+        }
 
-        .action-btn { padding: 15px 40px; font-size: 1.1em; border: none; border-radius: 50px; cursor: pointer; color: white; font-weight: 700; transition: transform 0.1s, box-shadow 0.2s; letter-spacing: 0.5px; }
-        .action-btn:active { transform: scale(0.96); }
-        .btn-check { background: linear-gradient(135deg, #00b09b, #96c93d); box-shadow: 0 8px 15px rgba(0, 176, 155, 0.2); }
-        .btn-check:hover { filter: brightness(1.05); }
-        .btn-check:disabled { background: #dfe6e9; color: #b2bec3; cursor: not-allowed; box-shadow: none; }
-        .btn-next { background: linear-gradient(135deg, #667eea, #764ba2); box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3); }
-        .btn-next:hover { filter: brightness(1.05); }
+        .result-panel h2 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
 
-        .feedback { padding: 25px; border-radius: 16px; font-weight: bold; font-size: 1.2em; display: none; animation: fadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); line-height: 1.6; margin-top: 20px; }
-        .feedback.correct { background: var(--success-bg); color: #27ae60; border: 2px solid #27ae60; }
-        .feedback.wrong { background: var(--error-bg); color: #c0392b; border: 2px solid #c0392b; }
-        .solution-step { font-weight: normal; font-size: 0.9em; margin-top: 15px; color: #555; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 8px; }
+        .result-panel p {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
 
-        /* SVG Styles */
-        svg { overflow: visible; }
-        .dim-line { stroke: #2d3436; stroke-width: 1.5; marker-end: url(#arrow); marker-start: url(#arrow); }
-        .dim-text { font-family: 'Nunito', sans-serif; font-size: 16px; fill: #d35400; font-weight: 700; }
-        .shape-stroke { fill: #fdf2e9; stroke: #2c3e50; stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
-        .water-gradient { fill: url(#waterGrad); opacity: 0.8; }
-        .juice-gradient { fill: url(#juiceGrad); opacity: 0.9; }
-        .metal-big { fill: url(#metalBig); stroke: #636e72; stroke-width: 1; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2)); }
-        .metal-small { fill: url(#metalSmall); stroke: #636e72; stroke-width: 1; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2)); }
-        .water-surface { fill: #74b9ff; stroke: #0984e3; stroke-width: 2; opacity: 0.8; }
-        .glass-style { fill: rgba(223, 230, 233, 0.3); stroke: #636e72; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-        .dashed-line { stroke: #b2bec3; stroke-width: 2; stroke-dasharray: 6,4; }
-        .action-arrow { fill: none; stroke: var(--accent-color); stroke-width: 5; marker-end: url(#arrow-orange); stroke-linecap: round; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1)); }
-        .grid-rect { fill: #fff; stroke: #dfe6e9; stroke-width: 1; }
-        .grid-filled { fill: #ff7675; stroke: #d63031; stroke-width: 1; }
-        /* Object Colors */
-        .obj-turtle { fill: #2ecc71; stroke: #27ae60; stroke-width: 1.5; }
-        .obj-coral { fill: #e74c3c; stroke: #c0392b; stroke-width: 1.5; }
-        .obj-shell { fill: #f1c40f; stroke: #d35400; stroke-width: 1.5; }
-        .obj-stone { fill: #95a5a6; stroke: #7f8c8d; stroke-width: 1.5; }
-        .obj-fruit { fill: #f39c12; stroke: #e67e22; stroke-width: 1.5; }
-        .obj-marble { fill: #e74c3c; stroke: #c0392b; stroke-width: 1.5; }
+        .restart-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .restart-btn:hover {
+            background-color: #0056b3;
+        }
 
     </style>
 </head>
 <body>
 
-    <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
-        <defs>
-            <marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto"><path d="M0,0 L0,10 L10,5 z" fill="#2d3436" /></marker>
-            <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L0,10 L10,5 z" fill="#f39c12" /></marker>
-            <linearGradient id="waterGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#74ebd5;stop-opacity:0.8" /><stop offset="100%" style="stop-color:#9face6;stop-opacity:0.9" /></linearGradient>
-            <linearGradient id="juiceGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ffd1ff;stop-opacity:0.9" /><stop offset="100%" style="stop-color:#fad0c4;stop-opacity:0.9" /></linearGradient>
-            <radialGradient id="metalBig" cx="35%" cy="35%" r="70%"><stop offset="0%" style="stop-color:#f5f7fa;stop-opacity:1" /><stop offset="100%" style="stop-color:#c3cfe2;stop-opacity:1" /></radialGradient>
-            <radialGradient id="metalSmall" cx="35%" cy="35%" r="70%"><stop offset="0%" style="stop-color:#e0c3fc;stop-opacity:1" /><stop offset="100%" style="stop-color:#8ec5fc;stop-opacity:1" /></radialGradient>
-        </defs>
-    </svg>
+<div class="container">
+    <h1>速算達人 🧠</h1>
 
-    <h1>📐 小學數學智能練習平台</h1>
+    <div id="selectionPanel" class="selection-panel">
+        <label for="gradeSelect">選擇年級：</label>
+        <select id="gradeSelect">
+            <option value="1">一年級 (一位數加減)</option>
+            <option value="2">二年級 (11-20 加減, 乘數表 X)</option>
+            <option value="3">三年級 (兩位數加法<50, 30內減法, 乘數表 X÷)</option>
+            <option value="4">四年級 (兩位數加法<80, 50內減法, 乘數表 X÷)</option>
+            <option value="5">五年級 (兩位數加法, 100內減法, 乘數表 X÷)</option>
+            <option value="6">六年級 (兩/三位數加法, 100內減法, 兩位乘一位 X÷)</option>
+        </select>
 
-    <div class="container">
-        <div class="nav-bar" id="nav-bar">
-            <span>主選單</span>
+        <label for="modeSelect">選擇模式：</label>
+        <select id="modeSelect">
+            <option value="fast">極速四選一 (5秒/題, 錯/超時即止)</option>
+            <option value="minute">1分鐘速算 (1分鐘, 錯扣5秒)</option>
+        </select>
+
+        <button id="startButton" class="start-btn">開始遊戲</button>
+    </div>
+
+    <div id="gamePanel" class="game-panel">
+        <div class="info-bar">
+            <span>計時：<span id="timer">--</span> 秒</span>
+            <span>分數：<span id="score">0</span> 題</span>
         </div>
-
-        <div id="view-mode-selection" class="content-area">
-            <h3 style="text-align:center; color:#636e72; margin-bottom:30px;">請選擇學習模式</h3>
-            <div class="menu-grid">
-                <div class="menu-card" onclick="selectMode('exercise')">
-                    <span class="menu-icon">📝</span>
-                    <div class="menu-title">題型練習</div>
-                    <div class="menu-desc">針對不同課題進行強化訓練</div>
-                </div>
-                <div class="menu-card" onclick="selectMode('notes')">
-                    <span class="menu-icon">📖</span>
-                    <div class="menu-title">重點筆記</div>
-                    <div class="menu-desc">溫習公式、定理與解題技巧</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-topics" class="content-area" style="display: none;">
-            <h3 style="text-align:center; color:#636e72; margin-bottom:30px;">請選擇課題</h3>
-            <div class="topic-grid" id="topic-grid"></div>
-        </div>
-
-        <div id="view-types" class="content-area" style="display: none;">
-            <h3 id="selected-topic-title" style="text-align:center; color:#636e72; margin-bottom:30px;"></h3>
-            <div class="type-menu" id="type-menu-container"></div>
-        </div>
-
-        <div id="view-exercise" class="content-area" style="display: none;">
-            <div class="question-container">
-                <div class="visual-area" id="visual-area"></div>
-                <div class="question-text" id="question-text"></div>
-
-                <div class="input-area">
-                    <b style="font-size:1.2em; color:#2d3436;">答案：</b>
-                    <input type="text" id="user-answer" placeholder="輸入答案" onkeypress="if(event.key==='Enter') checkAnswer()">
-                    <span id="unit-label" style="font-weight:bold; font-size:1.1em; color:#636e72;"></span>
-                    <button class="action-btn btn-check" id="check-btn" onclick="checkAnswer()">提交</button>
-                    <button class="action-btn btn-next" id="next-btn" onclick="prepareNextQuestion()">下一題 ➔</button>
-                </div>
-
-                <div id="feedback" class="feedback"></div>
-            </div>
-        </div>
-
-        <div id="view-note-content" class="content-area" style="display: none;">
-            <div class="note-text" id="note-display">筆記內容載入中...</div>
+        
+        <div id="question" class="question">載入中...</div>
+        
+        <div id="options" class="options">
+            <button class="option-btn" data-index="0"></button>
+            <button class="option-btn" data-index="1"></button>
+            <button class="option-btn" data-index="2"></button>
+            <button class="option-btn" data-index="3"></button>
         </div>
     </div>
 
-    <script>
-        // --- Logic & Data ---
-        const topicsData = [
-            { id: 1, name: "小數四則混算", types: [] },
-            { id: 2, name: "平均數", types: [] },
-            { 
-                id: 3, name: "百分數", active: true,
-                types: [
-                    { id: 31, name: "百分數的認識", active: true, desc: "看圖寫出百分數", color: "bg-purple" },
-                    { id: 32, name: "百分數互化", active: true, desc: "小數、分數、百分數互換及比較", color: "bg-purple" },
-                    { id: 33, name: "百分數應用題", active: true, desc: "求百分率、求數值、比較應用", color: "bg-purple" }
-                ] 
-            },
-            { 
-                id: 4, name: "容量與體積", active: true,
-                types: [
-                    { id: 41, name: "單位轉換", active: true, desc: "L, mL, cm³, m³ 互換", color: "bg-green" },
-                    { id: 42, name: "排水法應用題", active: true, desc: "量杯、水箱升降、溢水杯", color: "bg-blue" },
-                    { id: 43, name: "進階排水法", active: true, desc: "多重步驟、代數思維", color: "bg-orange" }
-                ] 
-            },
-            { 
-                id: 5, name: "圓周", active: true,
-                types: [
-                    { id: 51, name: "圓周的計算", active: true, desc: "已知半徑/直徑求周界，或相反", color: "bg-teal" },
-                    { id: 52, name: "不規則圖形的周界", active: true, desc: "半圓、扇形、複合圖形", color: "bg-teal" }
-                ]
-            },
-            { id: 6, name: "圓面積", types: [] }, { id: 7, name: "圓形圖", types: [] }, { id: 8, name: "速率", types: [] }, { id: 9, name: "方程", types: [] }, { id: 10, name: "折線圖", types: [] }, { id: 11, name: "軸對稱", types: [] }
-        ];
+    <div id="resultPanel" class="result-panel">
+        <h2>遊戲結束！🎉</h2>
+        <p>你的最終分數是：<strong id="finalScore">0</strong> 題</p>
+        <button id="restartButton" class="restart-btn">返回主選單</button>
+    </div>
+</div>
 
-        let state = { mode: null, topicId: null, typeId: null, answer: 0, unit: "", solution: "" };
+<script>
+    // --- JavaScript 邏輯 ---
+    const gradeSelect = document.getElementById('gradeSelect');
+    const modeSelect = document.getElementById('modeSelect');
+    const startButton = document.getElementById('startButton');
+    const selectionPanel = document.getElementById('selectionPanel');
+    const gamePanel = document.getElementById('gamePanel');
+    const resultPanel = document.getElementById('resultPanel');
+    const questionEl = document.getElementById('question');
+    const timerEl = document.getElementById('timer');
+    const scoreEl = document.getElementById('score');
+    const finalScoreEl = document.getElementById('finalScore');
+    const optionButtons = document.querySelectorAll('.option-btn');
+    const restartButton = document.getElementById('restartButton');
 
-        function gcd(a, b) { return b == 0 ? a : gcd(b, a % b); }
-        function roundTo(n, digits=2) { var m = Math.pow(10, digits); return Math.round(n * m) / m; }
-        function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    let currentGrade = 1;
+    let currentMode = 'fast';
+    let score = 0;
+    let fastTimerInterval;
+    let minuteTimerInterval;
+    let timeLeft = 0;
+    let correctAnswer = 0;
+    let gameActive = false;
 
-        window.onload = function() { updateNav(); };
+    // --- 遊戲設定 ---
+    const MAX_TIME_FAST = 5;
+    const MAX_TIME_MINUTE = 60;
+    const WRONG_PENALTY = 5;
 
-        // --- Navigation ---
-        function selectMode(mode) {
-            state.mode = mode;
-            document.getElementById('view-mode-selection').style.display = 'none';
-            document.getElementById('view-topics').style.display = 'grid';
-            renderTopics();
-            updateNav();
-        }
+    // 隨機生成 min (包含) 和 max (包含) 之間的整數
+    function rand(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
-        function renderTopics() {
-            const grid = document.getElementById('topic-grid');
-            grid.innerHTML = '';
-            topicsData.forEach(t => {
-                const card = document.createElement('div');
-                const isActive = t.active || (t.types && t.types.some(sub=>sub.active));
-                card.className = `topic-card ${isActive ? 'active' : 'disabled'}`;
-                card.innerHTML = `<span class="topic-num">${t.id}.</span><span class="topic-title">${t.name}</span>${isActive ? '' : '<br><small>(即將推出)</small>'}`;
-                if(isActive) card.onclick = () => selectTopic(t.id);
-                grid.appendChild(card);
-            });
-        }
-
-        function selectTopic(id) {
-            state.topicId = id;
-            const topic = topicsData.find(t=>t.id===id);
-            document.getElementById('view-topics').style.display = 'none';
-            
-            if(state.mode === 'exercise') {
-                document.getElementById('view-types').style.display = 'grid';
-                document.getElementById('selected-topic-title').textContent = topic.name;
-                const menu = document.getElementById('type-menu-container');
-                menu.innerHTML = '';
-                
-                if(topic.types && topic.types.length > 0) {
-                    topic.types.forEach((type, index) => {
-                        const btn = document.createElement('button');
-                        if(type.active) {
-                            btn.className = `type-btn ${type.color || 'bg-blue'}`;
-                            btn.onclick = () => startExercise(type.id);
-                            btn.innerHTML = `${index+1}. ${type.name}<br><small>${type.desc}</small>`;
-                        } else {
-                            btn.className = `type-btn disabled`;
-                            btn.innerHTML = `${index+1}. ${type.name}<br><small>(即將推出)</small>`;
-                        }
-                        menu.appendChild(btn);
-                    });
-                } else { menu.innerHTML = "<p>此課題暫無練習。</p>"; }
-            } else {
-                document.getElementById('view-note-content').style.display = 'block';
-                document.getElementById('note-display').innerHTML = `<h3>${topic.name} - 重點筆記</h3><p>這裡將會顯示關於<b>${topic.name}</b>的重點筆記。</p><p style="color:#aaa;">(內容編寫中...)</p>`;
-            }
-            updateNav();
-        }
-
-        function startExercise(typeId) {
-            state.typeId = typeId;
-            document.getElementById('view-types').style.display = 'none';
-            document.getElementById('view-exercise').style.display = 'block';
-            updateNav();
-            prepareNextQuestion();
-        }
-
-        function goBack(level) {
-            if(level === 0) {
-                state.mode = null; state.topicId = null; state.typeId = null;
-                document.getElementById('view-mode-selection').style.display = 'grid';
-                document.getElementById('view-topics').style.display = 'none';
-                document.getElementById('view-types').style.display = 'none';
-                document.getElementById('view-exercise').style.display = 'none';
-                document.getElementById('view-note-content').style.display = 'none';
-            } else if (level === 1) {
-                state.topicId = null; state.typeId = null;
-                document.getElementById('view-topics').style.display = 'grid';
-                document.getElementById('view-types').style.display = 'none';
-                document.getElementById('view-exercise').style.display = 'none';
-                document.getElementById('view-note-content').style.display = 'none';
-            } else if (level === 2) {
-                state.typeId = null;
-                document.getElementById('view-types').style.display = 'grid';
-                document.getElementById('view-exercise').style.display = 'none';
-            }
-            updateNav();
-        }
-
-        function updateNav() {
-            const nav = document.getElementById('nav-bar');
-            if(!state.mode) { nav.innerHTML = `<span>主選單</span>`; return; }
-            let html = `<button class="nav-btn" onclick="goBack(0)">主選單</button>`;
-            if(state.mode === 'exercise') html += `<span class="separator">/</span><span>題型練習</span>`;
-            else html += `<span class="separator">/</span><span>重點筆記</span>`;
-            if(state.topicId) {
-                const topic = topicsData.find(t=>t.id===state.topicId);
-                html += `<span class="separator">/</span>`;
-                html += `<button class="nav-btn" onclick="goBack(1)">${topic.name}</button>`;
-                if(state.typeId) {
-                    const type = topic.types.find(t=>t.id===state.typeId);
-                    html += `<span class="separator">/</span><span>${type.name}</span>`;
-                } else if(state.mode === 'notes') {
-                    html += `<span class="separator">/</span><span>筆記內容</span>`;
+    // 根據年級和運算符生成隨機數字範圍
+    function generateNumbers(op) {
+        let num1, num2;
+        
+        switch (currentGrade) {
+            case 1: // 一位數加法和一位數減法
+                if (op === '+') {
+                    num1 = rand(1, 9);
+                    num2 = rand(1, 9 - num1); // 確保答案在 1-9 範圍
+                } else if (op === '-') {
+                    num1 = rand(1, 9);
+                    num2 = rand(1, num1);
                 }
-            }
-            nav.innerHTML = html;
-        }
-
-        // --- Question Dispatcher ---
-        function prepareNextQuestion() {
-            document.getElementById('feedback').style.display = 'none';
-            document.getElementById('next-btn').style.display = 'none';
-            document.getElementById('check-btn').disabled = false;
-            document.getElementById('user-answer').value = '';
-            document.getElementById('visual-area').innerHTML = '';
-            document.getElementById('visual-area').style.display = 'none'; 
-            state.solution = ""; 
-
-            const tid = state.typeId;
-            if(tid === 31) generatePercentUnderstanding();
-            else if(tid === 32) generatePercentConversion();
-            else if(tid === 33) generatePercentageWordProblems();
-            else if(tid === 41) generateVolUnit();
-            else if(tid === 42) generateVolDisplacement();
-            else if(tid === 43) generateVolAdvanced();
-            else if(tid === 51) generateCircumferenceBasic();
-            else if(tid === 52) generateIrregularPerimeter();
-        }
-
-        // ================= FULLY RESTORED DRAWING FUNCTIONS =================
-
-        // 1. Draw 2D Beaker
-        function drawBeaker2D(vol, balls=0, label="") {
-            const scale = 1.3;
-            const h = 140, w = 90;
-            const maxVol = Math.max(vol * 1.2, 500); // Dynamic scale
-            const waterH = Math.min((vol / maxVol) * 120, 120); 
-            
-            let ballsSvg = "";
-            if(balls > 0) {
-                for(let i=0; i<balls; i++) {
-                    let bx = 20 + (i%3)*20;
-                    let by = h - 15 - Math.floor(i/3)*15;
-                    ballsSvg += `<circle cx="${bx}" cy="${by}" r="8" class="metal-small"/>`;
+                break;
+            case 2: // 11-20加法和減法，乘數表
+                if (op === '+') {
+                    // 答案在 11-20 範圍，確保 num1, num2 > 0
+                    let result = rand(11, 20);
+                    num1 = rand(1, result - 1);
+                    num2 = result - num1;
+                } else if (op === '-') {
+                    // 被減數在 11-20 範圍
+                    num1 = rand(11, 20);
+                    num2 = rand(1, num1);
+                } else if (op === 'X') {
+                    // 乘數表
+                    num1 = rand(2, 9);
+                    num2 = rand(2, 9);
                 }
-            }
-            
-            return `<svg width="${110*scale}" height="${160*scale}" viewBox="0 0 110 160">
-                <text x="55" y="15" text-anchor="middle" font-size="14" font-weight="bold">${label}</text>
-                <g transform="translate(10,25)">
-                    <rect x="0" y="0" width="${w}" height="${h}" class="glass-style" fill="none"/>
-                    <rect x="3" y="${h-waterH}" width="${w-6}" height="${waterH}" class="water-gradient"/>
-                    ${ballsSvg}
-                    <path d="M5,5 V${h-5}" stroke="rgba(255,255,255,0.5)" stroke-width="3" fill="none"/>
-                    <line x1="${w}" y1="${h-waterH}" x2="${w-15}" y2="${h-waterH}" stroke="#333" stroke-width="2"/>
-                    <text x="${w-18}" y="${h-waterH-5}" font-size="12" font-weight="bold" text-anchor="end">${vol}mL</text>
-                </g>
-            </svg>`;
-        }
-
-        // 2. Draw Overflow Can + 3D Box
-        function drawOverflowSetup(L, W, H_water, labelMode) {
-            const scale = 1.3;
-            
-            // Left: Overflow can
-            const canSvg = `<g transform="translate(10,10)">
-                <path d="M0,0 V100 H70 V40" class="glass-style" fill="none"/>
-                <path d="M70,15 V0" class="glass-style" fill="none"/>
-                <path d="M70,40 L90,50" stroke="#555" fill="none" stroke-width="2"/> 
-                <path d="M70,15 L90,25" stroke="#555" fill="none" stroke-width="2"/>
-                <path d="M3,40 H70 V97 H3 Z" class="water-gradient"/> 
-                <path d="M35,60 L50,80 L25,85 Z" class="obj-stone"/> 
-            </g>`;
-            
-            // Right: 3D Box
-            const boxL = 60, boxW = 40, boxH = 40; 
-            const angle = Math.PI / 6;
-            const depth = boxW * 0.5;
-            const dx = depth * Math.cos(angle);
-            const dy = depth * Math.sin(angle);
-            const visWaterH = (H_water / (H_water + 2)) * 35; // Visual scale
-            
-            const bx = 120, by = 110; 
-            const pBL = {x:bx, y:by}, pBR = {x:bx+boxL, y:by}, pTL = {x:bx, y:by-boxH}, pTR = {x:bx+boxL, y:by-boxH};
-            const bBL = {x:bx+dx, y:by-dy}, bBR = {x:bx+boxL+dx, y:by-dy}, bTR = {x:bx+boxL+dx, y:by-boxH-dy}, bTL = {x:bx+dx, y:by-boxH-dy};
-
-            const boxSvg = `
-                <path d="M${pBL.x},${pBL.y} L${pBR.x},${pBR.y} L${bBR.x},${bBR.y} L${bBR.x},${bBR.y-visWaterH} L${pBR.x},${pBR.y-visWaterH} L${pBL.x},${pBL.y-visWaterH} Z" class="water-gradient" stroke="none"/>
-                <path d="M${pBL.x},${pBL.y-visWaterH} L${pBR.x},${pBR.y-visWaterH} L${bBR.x},${bBR.y-visWaterH} L${bBL.x},${bBL.y-visWaterH} Z" fill="#85c1e9" opacity="0.8"/>
-                <path d="M${pTL.x},${pTL.y} L${pBL.x},${pBL.y} L${pBR.x},${pBR.y} L${pTR.x},${pTR.y} Z" class="glass-style" fill="none"/>
-                <path d="M${pBR.x},${pBR.y} L${bBR.x},${bBR.y} L${bTR.x},${bTR.y} L${pTR.x},${pTR.y}" class="glass-style" fill="none"/>
-                <path d="M${pTL.x},${pTL.y} L${bTL.x},${bTL.y} L${bTR.x},${bTR.y}" class="glass-style" fill="none"/>
-                <line x1="${bTL.x}" y1="${bTL.y}" x2="${bBL.x}" y2="${bBL.y}" class="dashed-line"/>
-                <line x1="${bBL.x}" y1="${bBL.y}" x2="${pBL.x}" y2="${pBL.y}" class="dashed-line"/>
-                <line x1="${bBL.x}" y1="${bBL.y}" x2="${bBR.x}" y2="${bBR.y}" class="dashed-line"/>
-                ${labelMode ? `
-                   ${drawDimArrow(pBL.x, pBL.y+15, pBR.x, pBR.y+15, `${L}cm`, 0)}
-                   ${drawDimArrow(pBR.x+5, pBR.y, bBR.x+5, bBR.y, `${W}cm`, 10, "start")}
-                   ${drawDimArrow(pBL.x-10, pBL.y, pBL.x-10, pBL.y-visWaterH, `${H_water}cm`, -5, "end")}
-                ` : ''}
-            `;
-
-            return `<svg width="${250*scale}" height="${150*scale}" viewBox="0 0 250 150">${canSvg}${boxSvg}</svg>`;
-        }
-
-        // 3. Draw 3D Tank Generic
-        function draw3DTank(L, W, waterH, objType, action, labelMode, showWaterLabel=true, objCount=1) {
-            const scale = 4.5;
-            const w = L * scale;
-            const h = 20 * scale; 
-            const wh = waterH * scale;
-            const angle = Math.PI / 6;
-            const depth = W * scale * 0.6;
-            const dx = depth * Math.cos(angle);
-            const dy = depth * Math.sin(angle);
-            const startX = 30, startY = h + dy + 30;
-
-            const fBL={x:startX,y:startY}, fBR={x:startX+w,y:startY}, fTL={x:startX,y:startY-h}, fTR={x:startX+w,y:startY-h};
-            const bBL={x:startX+dx,y:startY-dy}, bBR={x:startX+w+dx,y:startY-dy}, bTL={x:startX+dx,y:startY-h-dy}, bTR={x:startX+w+dx,y:startY-h-dy};
-            const wY = startY - wh;
-            const wfTL={x:startX,y:wY}, wfTR={x:startX+w,y:wY}, wbTL={x:startX+dx,y:wY-dy}, wbTR={x:startX+w+dx,y:wY-dy};
-            
-            const centerBaseX = (fBL.x + bBR.x)/2;
-            const centerBaseY = (fBL.y + bBR.y)/2;
-            const centerTopX = (fTL.x + bTR.x)/2;
-            const centerTopY = (fTL.y + bTR.y)/2;
-
-            let svg = `<svg width="${w+dx+100}" height="${h+dy+80}" viewBox="-20 -40 ${w+dx+120} ${h+dy+100}">`;
-
-            // Water
-            svg += `<path d="M${fBL.x},${fBL.y} L${fBR.x},${fBR.y} L${bBR.x},${bBR.y} L${bBR.x},${wbTR.y} L${wfTR.x},${wfTR.y} L${wfTL.x},${wfTL.y} Z" class="${objType==='juice'?'juice-gradient':'water-gradient'}" fill="${objType==='juice'?'url(#juiceGrad)':'url(#waterGrad)'}" stroke="none"/>`;
-
-            // Objects Inside
-            if(action === 'inside' || action === 'remove') {
-                const spreadWidth = w * 0.6; 
-                for(let i=0; i<objCount; i++) {
-                    let offsetX = 0;
-                    if(objCount > 1) {
-                         offsetX = -spreadWidth/2 + (spreadWidth / (objCount-1)) * i;
-                         offsetX += (Math.random() * 10 - 5);
+                break;
+            case 3: // 兩位數加法（答案50以下），30以內減法，乘數表 X÷
+                if (op === '+') {
+                    // 答案 50 以下，兩位數加法
+                    let result = rand(20, 50);
+                    num1 = rand(10, result - 10);
+                    num2 = result - num1;
+                } else if (op === '-') {
+                    // 30以內減法
+                    num1 = rand(10, 30);
+                    num2 = rand(1, num1);
+                } else if (op === 'X' || op === '÷') {
+                    // 乘數表內的乘法和除法
+                    let divisor = rand(2, 9);
+                    let quotient = rand(2, 9);
+                    if (op === 'X') {
+                        num1 = divisor; num2 = quotient;
+                    } else { // '÷'
+                        num1 = divisor * quotient;
+                        num2 = divisor;
                     }
-                    let offsetY = (i % 2 === 0 ? 5 : -5);
-                    let drawX = centerBaseX + offsetX;
-                    let drawY = centerBaseY + offsetY - 15;
-
-                    if(objType === 'turtle') svg += drawIcon(drawX, drawY, 'turtle');
-                    else if(objType === 'coral') svg += drawIcon(drawX, drawY, 'coral');
-                    else if(objType === 'shell') svg += drawIcon(drawX, drawY, 'shell');
-                    else if(objType === 'juice') svg += drawIcon(drawX, drawY, 'fruit'); 
                 }
-            }
+                break;
+            case 4: // 兩位數加法（答案80以下），50以內減法，乘數表 X÷
+                if (op === '+') {
+                    // 答案 80 以下，兩位數加法
+                    let result = rand(30, 80);
+                    num1 = rand(10, result - 10);
+                    num2 = result - num1;
+                } else if (op === '-') {
+                    // 50以內減法
+                    num1 = rand(20, 50);
+                    num2 = rand(1, num1);
+                } else if (op === 'X' || op === '÷') {
+                    // 乘數表內的乘法和除法
+                    let divisor = rand(2, 9);
+                    let quotient = rand(2, 12); // 擴大乘數表範圍
+                    if (op === 'X') {
+                        num1 = divisor; num2 = quotient;
+                    } else { // '÷'
+                        num1 = divisor * quotient;
+                        num2 = divisor;
+                    }
+                }
+                break;
+            case 5: // 兩位數加法，100以內減法，乘數表 X÷
+                if (op === '+') {
+                    // 兩位數加法，答案 100-200 左右
+                    num1 = rand(10, 99);
+                    num2 = rand(10, 99);
+                } else if (op === '-') {
+                    // 100以內減法
+                    num1 = rand(50, 100);
+                    num2 = rand(1, num1);
+                } else if (op === 'X' || op === '÷') {
+                    // 乘數表內的乘法和除法
+                    let divisor = rand(2, 12);
+                    let quotient = rand(2, 12);
+                    if (op === 'X') {
+                        num1 = divisor; num2 = quotient;
+                    } else { // '÷'
+                        num1 = divisor * quotient;
+                        num2 = divisor;
+                    }
+                }
+                break;
+            case 6: // 兩或三位數加法，100以內減法，兩位乘一位的乘法和除法
+                if (op === '+') {
+                    // 兩或三位數加法
+                    num1 = rand(10, 200);
+                    num2 = rand(10, 200);
+                } else if (op === '-') {
+                    // 100以內減法
+                    num1 = rand(50, 100);
+                    num2 = rand(1, num1);
+                } else if (op === 'X' || op === '÷') {
+                    // 兩位乘一位的乘法和除法
+                    let singleDigit = rand(2, 9);
+                    let doubleDigit = rand(10, 99);
+                    if (op === 'X') {
+                        num1 = singleDigit; num2 = doubleDigit;
+                    } else { // '÷'
+                        num1 = singleDigit * doubleDigit;
+                        num2 = singleDigit;
+                    }
+                }
+                break;
+        }
+        return [num1, num2];
+    }
 
-            // Surface
-            svg += `<path d="M${wfTL.x},${wfTL.y} L${wfTR.x},${wfTR.y} L${wbTR.x},${wbTR.y} L${wbTL.x},${wbTL.y} Z" class="water-surface" fill="${objType==='juice'?'#f7dc6f':'#85c1e9'}"/>`;
-
-            // Lines
-            svg += `<line x1="${fBL.x}" y1="${fBL.y}" x2="${bBL.x}" y2="${bBL.y}" class="dashed-line"/>`;
-            svg += `<line x1="${bBL.x}" y1="${bBL.y}" x2="${bBR.x}" y2="${bBR.y}" class="dashed-line"/>`;
-            svg += `<line x1="${bBL.x}" y1="${bBL.y}" x2="${bTL.x}" y2="${bTL.y}" class="dashed-line"/>`;
-
-            svg += `<rect x="${fTL.x}" y="${fTL.y}" width="${w}" height="${h}" class="glass-style" fill="none"/>`;
-            svg += `<line x1="${fTL.x}" y1="${fTL.y}" x2="${bTL.x}" y2="${bTL.y}" class="glass-style"/>`;
-            svg += `<line x1="${fTR.x}" y1="${fTR.y}" x2="${bTR.x}" y2="${bTR.y}" class="glass-style"/>`;
-            svg += `<line x1="${fBR.x}" y1="${fBR.y}" x2="${bBR.x}" y2="${bBR.y}" class="glass-style"/>`;
-            svg += `<line x1="${bTL.x}" y1="${bTL.y}" x2="${bTR.x}" y2="${bTR.y}" class="glass-style"/>`;
-            svg += `<line x1="${bTR.x}" y1="${bTR.y}" x2="${bBR.x}" y2="${bBR.y}" class="glass-style"/>`;
-
-            // Actions
-            if(action === 'insert') {
-                let ox = centerTopX - 60, oy = centerTopY - 70;
-                if(objType === 'turtle') svg += drawIcon(ox, oy, 'turtle');
-                else if(objType === 'shell') svg += drawIcon(ox, oy, 'shell');
-                svg += `<path d="M${ox+20},${oy+20} Q${centerTopX-10},${centerTopY-20} ${centerTopX},${centerTopY}" class="action-arrow"/>`;
-            }
-            else if(action === 'remove') {
-                let ox = centerTopX + 60, oy = centerTopY - 70;
-                svg += `<path d="M${centerTopX},${centerTopY} Q${centerTopX+10},${centerTopY-40} ${ox},${oy}" class="action-arrow"/>`;
-            }
-            else if(action === 'pour') {
-                svg += `<g transform="translate(${centerTopX-70}, ${centerTopY-90}) scale(1.2)">
-                    <path d="M0,0 L10,30 L40,25 L30,-5 Z" fill="#ddd" stroke="#555"/>
-                    <path d="M40,25 Q50,40 60,80" stroke="#f1c40f" stroke-width="4" fill="none"/>
-                    <circle cx="0" cy="50" r="10" class="obj-fruit"/>
-                </g>`;
-            }
-
-            if(labelMode) {
-                svg += drawDimArrow(fBL.x, fBL.y+20, fBR.x, fBR.y+20, `${L}cm`, 0);
-                svg += drawDimArrow(fBR.x+10, fBR.y+5, bBR.x+10, bBR.y+5, `${W}cm`, 15, 'start');
-            }
-            if(waterH > 0 && showWaterLabel) {
-                 svg += drawDimArrow(fBL.x-15, fBL.y, fBL.x-15, wfTL.y, `${waterH}cm`, -5, 'end');
-            }
-
-            svg += `</svg>`;
-            return svg;
+    // 生成題目
+    function generateQuestion() {
+        let ops = [];
+        if (currentGrade === 1) {
+            ops = ['+', '-'];
+        } else if (currentGrade === 2) {
+            ops = ['+', '-', 'X'];
+        } else { // 3-6年級
+            ops = ['+', '-', 'X', '÷'];
         }
 
-        // 4. Draw Eureka Sequence
-        function drawEurekaSequence(nBig1, nSmall1, w1, nBig2, nSmall2, w2, addedText) {
-            const setup1 = drawEurekaUnit(nBig1, nSmall1, w1, "步驟一");
-            const setup2 = drawEurekaUnit(nBig2, nSmall2, w2, "步驟二");
-            return `
-            <svg width="600" height="200" viewBox="0 0 600 200">
-                <g transform="translate(0,0)">${setup1}</g>
-                <g transform="translate(230, 80)">
-                    <path d="M0,20 L40,20" stroke="#f39c12" stroke-width="6" marker-end="url(#arrow-orange)"/>
-                    <text x="20" y="-15" text-anchor="middle" font-size="15" font-weight="bold" fill="#f39c12">${addedText}</text>
-                </g>
-                <g transform="translate(320,0)">${setup2}</g>
-            </svg>`;
+        let op = ops[rand(0, ops.length - 1)];
+        let [num1, num2] = generateNumbers(op);
+        let result;
+
+        switch (op) {
+            case '+': result = num1 + num2; break;
+            case '-': result = num1 - num2; break;
+            case 'X': result = num1 * num2; break;
+            case '÷': result = Math.round(num1 / num2); break;
         }
 
-        // 5. Eureka Unit
-        function drawEurekaUnit(nBig, nSmall, waterLevel, label) {
-            const canW = 80, canH = 100, spoutY = 30;
-            const maxVol = 300; 
-            const waterPx = Math.min((waterLevel / maxVol) * 80, 80); 
-            let marbles = "";
-            let x = 15, y = canH - 12;
-            for(let i=0; i<nBig; i++) { marbles += `<circle cx="${x}" cy="${y}" r="11" class="metal-big"/>`; x += 24; if(x > canW - 15) { x = 15; y -= 22; } }
-            if(nBig > 0) { x = 15; y -= 20; } else { x = 15; y = canH - 8; }
-            for(let i=0; i<nSmall; i++) { marbles += `<circle cx="${x}" cy="${y}" r="7" class="metal-small"/>`; x += 16; if(x > canW - 10) { x = 12; y -= 15; } }
-            return `
-            <text x="90" y="20" text-anchor="middle" font-weight="bold" fill="#555">${label}</text>
-            <g transform="translate(0, 30)">
-                <g><path d="M5,${spoutY} L5,${canH-2} L${canW-5},${canH-2} L${canW-5},${spoutY} Z" class="water-gradient" />${marbles}<path d="M0,0 V${canH} H${canW} V${spoutY+15}" class="glass-style" fill="none"/><path d="M${canW},${spoutY-15} V0" class="glass-style" fill="none"/><path d="M${canW},${spoutY+15} L${canW+15},${spoutY+25}" class="glass-style" fill="none"/><path d="M${canW},${spoutY-15} L${canW+15},${spoutY}" class="glass-style" fill="none"/></g>
-                <g transform="translate(130, 20)"><rect x="0" y="${80-waterPx}" width="30" height="${waterPx}" class="water-gradient"/><rect x="0" y="0" width="30" height="80" class="glass-style" fill="none"/><line x1="20" y1="60" x2="30" y2="60" stroke="#555"/><line x1="20" y1="40" x2="30" y2="40" stroke="#555"/><line x1="20" y1="20" x2="30" y2="20" stroke="#555"/><text x="35" y="${80-waterPx}" font-size="12" font-weight="bold" fill="#d35400" dominant-baseline="middle">← ${waterLevel}mL</text></g>
-            </g>`;
-        }
+        correctAnswer = result;
+        questionEl.textContent = `${num1} ${op} ${num2} = ?`;
+        
+        optionButtons.forEach(btn => btn.disabled = false);
+        generateOptions(correctAnswer, currentMode);
+    }
 
-        // Helpers
-        function drawDimArrow(x1, y1, x2, y2, text, offset=0, align="middle") {
-            return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="dim-line"/><text x="${(x1+x2)/2 + offset}" y="${(y1+y2)/2}" class="dim-text" text-anchor="${align}" dominant-baseline="middle">${text}</text>`;
-        }
-        function drawIcon(x, y, type) {
-            const s=1.2; 
-            if(type==='turtle') return `<g transform="translate(${x-20},${y-15}) scale(${s})"><path d="M5,15 Q15,5 25,15 Q25,20 5,20 Z" class="obj-turtle"/><circle cx="28" cy="18" r="3" fill="#27ae60"/><path d="M5,20 L2,23 M25,20 L28,23" stroke="#27ae60" stroke-width="2"/></g>`;
-            if(type==='coral') return `<g transform="translate(${x-15},${y-25}) scale(${s})"><path d="M10,25 L10,15 L5,5 M10,15 L15,5 M10,15 L20,10" stroke="#c0392b" stroke-width="3" fill="none"/></g>`;
-            if(type==='shell') return `<g transform="translate(${x-15},${y-15}) scale(${s})"><path d="M0,15 Q10,0 20,15 Z" class="obj-shell"/><path d="M2,15 L18,15" stroke="#d35400"/></g>`;
-            if(type==='fruit') return `<g transform="translate(${x-15},${y-15}) scale(${s})"><circle cx="10" cy="10" r="6" class="obj-fruit"/><circle cx="18" cy="15" r="5" class="obj-fruit"/></g>`;
-            return "";
-        }
-
-        // --- Logic Integration ---
-        function generateVolDisplacement() {
-            document.getElementById('visual-area').style.display = 'flex';
-            const scenario = Math.floor(Math.random() * 6) + 1;
-            let qText = "", vizHtml = "";
-
-            if (scenario === 1) { 
-                const startV = Math.floor(Math.random()*20 + 20) * 10; 
-                const marbleV = Math.floor(Math.random()*15 + 15);
-                const count = Math.floor(Math.random()*3) + 3; 
-                const endV = startV + (marbleV * count);
-                qText = `一個量杯原本裝有 ${startV} mL 的水，放入 ${count} 粒相同的波子後，水位上升至 ${endV} mL。<br>求每粒波子的體積。`;
-                state.solution = `(${endV} - ${startV}) ÷ ${count} = ${marbleV}`;
-                vizHtml = drawBeaker2D(startV, 0, "原本") + `<div class="arrow-indicator">➡</div>` + drawBeaker2D(endV, count, "放入後");
-                state.answer = marbleV; state.unit = "cm³";
-            } 
-            else if (scenario === 2) {
-                const L = Math.floor(Math.random()*10)+8; 
-                const W = Math.floor(Math.random()*5)+5;
-                const H = (Math.floor(Math.random()*40)+20)/10;
-                qText = `將一塊石頭完全浸入裝滿水的溢水杯中，溢出的水流入一個長方體容器（長${L}cm，闊${W}cm）。<br>接得的水深是 ${H} cm。<br>這塊石頭的體積是多少？`;
-                state.solution = `${L} × ${W} × ${H} = ${roundTo(L*W*H)}`;
-                vizHtml = drawOverflowSetup(L, W, H, true);
-                state.answer = roundTo(L * W * H, 2); state.unit = "cm³";
-            }
-            else if (scenario === 3) {
-                const L = 20, W = 15;
-                const rise = (Math.floor(Math.random()*20)+5)/10;
-                const niceVol = roundTo(L*W*rise, 2);
-                qText = `卓言把一隻體積是 ${niceVol} cm³ 的烏龜放入魚缸內，水位會升高多少 cm？<br>(魚缸長 ${L} cm，闊 ${W} cm)`;
-                state.solution = `${niceVol} ÷ (${L} × ${W}) = ${rise}`;
-                vizHtml = draw3DTank(L, W, 8, 'turtle', 'insert', true, true, 0) + 
-                          `<div class="arrow-indicator">➡</div>` + 
-                          draw3DTank(L, W, 8+rise, 'turtle', 'inside', false, false, 1); 
-                state.answer = rise; state.unit = "cm";
-            }
-            else if (scenario === 4) {
-                const L = 16, W = 15;
-                const coralV = Math.floor(Math.random()*100)+300; 
-                const count = 1; 
-                const drop = roundTo((coralV * count) / (L*W), 2); 
-                qText = `爸爸從魚缸內取出 ${count} 個體積是 ${coralV} cm³ 的珊瑚，水位下降了多少 cm？<br>(魚缸長 ${L} cm，闊 ${W} cm)`;
-                state.solution = `${coralV} ÷ (${L} × ${W}) = ${drop}`;
-                vizHtml = draw3DTank(L, W, 14, 'coral', 'remove', true, true, 1) + 
-                          `<div class="arrow-indicator">➡</div>` + 
-                          draw3DTank(L, W, 14-drop, 'coral', 'none', false, false, 0); 
-                state.answer = drop; state.unit = "cm";
-            }
-            else if (scenario === 5) {
-                const L = 30, W = 14;
-                const h1 = 9;
-                const rise = (Math.floor(Math.random()*15)+5)/10;
-                const h2 = h1 + rise;
-                const count = Math.floor(Math.random() * 4) + 3;
-                qText = `美玲把 ${count} 個貝殼放入水族箱內，水位由 ${h1} cm 上升至 ${h2} cm，平均每個貝殼的體積是多少 cm³？<br>(水箱長 ${L} cm，闊 ${W} cm)`;
-                state.solution = `(${L} × ${W} × (${h2} - ${h1})) ÷ ${count} = ${roundTo((L*W*rise)/count)}`;
-                vizHtml = draw3DTank(L, W, h1, 'shell', 'insert', true, true, 0) + 
-                          `<div class="arrow-indicator">➡</div>` + 
-                          draw3DTank(L, W, h2, 'shell', 'inside', false, true, count);
-                state.answer = roundTo((L * W * rise) / count, 2); state.unit = "cm³";
-            }
-            else if (scenario === 6) {
-                const l = 12, w = 10;
-                const jV = Math.floor(Math.random()*200)+600;
-                const solidV = Math.floor(Math.random()*50)+100;
-                const tV = jV + solidV;
-                qText = `媽媽先將 ${jV} 毫升的果汁倒入右面的長方體容器內，再加入體積是 ${solidV} cm³ 的菠蘿粒。現在容器內特飲的高度是多少厘米？<br>(容器長 ${l} cm，闊 ${w} cm)`;
-                state.solution = `(${jV} + ${solidV}) ÷ (${l} × ${w}) = ${roundTo(tV/(l*w))}`;
-                vizHtml = draw3DTank(l, w, 0, 'juice', 'pour', true, true, 0) + 
-                          `<div class="arrow-indicator">➡</div>` + 
-                          draw3DTank(l, w, tV/(l*w), 'juice', 'inside', false, false, 4); 
-                state.answer = roundTo(tV / (l*w), 2); state.unit = "cm";
-            }
-
-            document.getElementById('question-text').innerHTML = qText;
-            document.getElementById('visual-area').innerHTML = vizHtml;
-            document.getElementById('unit-label').textContent = state.unit;
-        }
-
-        function generateVolAdvanced() {
-            document.getElementById('visual-area').style.display = 'flex';
+    // 生成選項 (加入誘答邏輯)
+    function generateOptions(correct, mode) {
+        let options = new Set([correct]);
+        
+        if (mode === 'fast') {
+            // 極速模式使用誘答邏輯
+            let distractors = [];
             
-            const volBig = Math.floor(Math.random() * 25 + 25); 
-            const volSmall = Math.floor(Math.random() * 15 + 10);
-            const nBig1 = Math.floor(Math.random() * 2) + 1; 
-            const nSmall1 = Math.floor(Math.random() * 3) + 1; 
-            const water1 = (nBig1 * volBig) + (nSmall1 * volSmall);
+            // 誘答 1: 個位數 ±1
+            if (correct % 10 !== 0) distractors.push(correct + 1);
+            if (correct % 10 !== 9 && correct > 1) distractors.push(correct - 1);
 
-            const addType = Math.random() > 0.5 ? 'BIG' : 'SMALL';
-            const addCount = Math.floor(Math.random() * 4) + 1; 
-            let nBig2 = nBig1, nSmall2 = nSmall1;
-            let addedText = "", targetName = "";
-
-            if(addType === 'BIG') {
-                nBig2 += addCount; addedText = `${addCount} 粒大鐵珠`;
-                state.answer = volSmall; targetName = "小鐵珠";
-                state.solution = `1 粒大鐵珠 = (V2 - V1) ÷ ${addCount}<br>1 粒小鐵珠 = (V1 - ${nBig1} × 大鐵珠) ÷ ${nSmall1}<br>= ${volSmall}`;
-            } else {
-                nSmall2 += addCount; addedText = `${addCount} 粒小鐵珠`;
-                state.answer = volBig; targetName = "大鐵珠";
-                state.solution = `1 粒小鐵珠 = (V2 - V1) ÷ ${addCount}<br>1 粒大鐵珠 = (V1 - ${nSmall1} × 小鐵珠) ÷ ${nBig1}<br>= ${volBig}`;
+            // 誘答 2: 十位數 ±10
+            if (correct >= 10) {
+                if (correct % 100 < 90) distractors.push(correct + 10);
+                if (correct > 10) distractors.push(correct - 10);
             }
-            const water2 = (nBig2 * volBig) + (nSmall2 * volSmall);
-
-            const vizHtml = drawEurekaSequence(nBig1, nSmall1, water1, nBig2, nSmall2, water2, "再放入" + addedText);
             
-            const qText = `
-                <b>步驟一：</b>把 ${nBig1} 粒大鐵珠和 ${nSmall1} 粒小鐵珠放入排水桶，量杯收集到 ${water1} mL 水。<br>
-                <b>步驟二：</b>再放入 ${addedText}，量杯內的總水位上升至 ${water2} mL。<br>
-                <hr style="border-top:1px dashed #ccc; margin:15px 0;">
-                請問 1 粒 <b>${targetName}</b> 的體積是多少？
-            `;
+            // 篩選有效的誘答，並確保不重複
+            distractors = [...new Set(distractors.filter(d => d > 0 && d !== correct))];
+            
+            // 隨機選取誘答加入
+            while (options.size < 4 && distractors.length > 0) {
+                const index = rand(0, distractors.length - 1);
+                options.add(distractors[index]);
+                distractors.splice(index, 1); // 移除已選的誘答
+            }
+        }
+        
+        // 如果誘答不足，則隨機生成其他答案
+        while (options.size < 4) {
+            let offset = rand(2, 15); // 隨機偏移量
+            let wrongAnswer = Math.random() > 0.5 ? correct + offset : correct - offset;
 
-            document.getElementById('question-text').innerHTML = qText;
-            document.getElementById('visual-area').innerHTML = vizHtml;
-            state.unit = "cm³";
-            document.getElementById('unit-label').textContent = state.unit;
+            // 確保答案不為負數、不與正確答案重複
+            if (wrongAnswer > 0 && wrongAnswer !== correct) {
+                 options.add(wrongAnswer);
+            }
         }
 
-        // --- Other Generators (Circumference, Percent, etc) ---
-        function generateCircumferenceBasic() {
-            document.getElementById('visual-area').style.display='flex'; const useF=Math.random()>0.5, piV=useF?22/7:3.14, piT=useF?"22/7":"3.14", sub=randomInt(1,4); let v=0,a=0,q="",svg="";
-            const dc=(isD,val)=>`<svg width="220" height="220" viewBox="-10 0 220 220"><circle cx="100" cy="120" r="60" fill="none" stroke="#2c3e50" stroke-width="3"/><circle cx="100" cy="120" r="3" fill="#2c3e50"/>${isD?`<line x1="30" y1="100" x2="170" y2="100" stroke="#e74c3c" stroke-width="2"/><text x="100" y="90" text-anchor="middle" fill="#e74c3c" font-weight="bold">d=${val}cm</text>`:`<line x1="100" y1="100" x2="170" y2="100" stroke="#e74c3c" stroke-width="2"/><text x="135" y="90" text-anchor="middle" fill="#e74c3c" font-weight="bold">r=${val}cm</text>`}</svg>`;
-            if(sub===1){v=useF?(randomInt(1,4)*7)/(Math.random()>0.7?2:1):randomInt(2,15); a=2*piV*v; q=`圓形的半徑是 ${v} cm，求圓周。(取 &pi;=${piT})`; state.solution=`${v}×2×${piT}=${roundTo(a)}`; svg=dc(false,v);}
-            else if(sub===2){v=useF?(randomInt(1,4)*7):randomInt(4,30); a=piV*v; q=`圓形的直徑是 ${v} cm，求圓周。(取 &pi;=${piT})`; state.solution=`${v}×${piT}=${roundTo(a)}`; svg=dc(true,v);}
-            else if(sub===3){const d=useF?randomInt(1,5)*7:randomInt(2,20); v=roundTo(d*piV); a=d; q=`圓形的圓周是 ${v} cm，求直徑。(取 &pi;=${piT})`; state.solution=`${v}÷${piT}=${a}`; svg=`<svg width="220" height="220" viewBox="-10 0 220 220"><circle cx="100" cy="120" r="60" fill="none" stroke="#2c3e50" stroke-width="3"/><circle cx="100" cy="120" r="3" fill="#2c3e50"/><path d="M 40,120 A 75,75 0 1,1 160,120" fill="none" stroke="#e67e22" stroke-width="3" marker-end="url(#arrow-orange)" marker-start="url(#arrow-orange)"/><text x="100" y="30" text-anchor="middle" fill="#2c3e50" font-weight="bold" font-size="16">圓周 = ${v} cm</text></svg>`;}
-            else{const r=useF?randomInt(1,4)*7:randomInt(2,10); v=roundTo(2*r*piV); a=r; q=`圓形的圓周是 ${v} cm，求半徑。(取 &pi;=${piT})`; state.solution=`${v}÷${piT}÷2=${a}`; svg=`<svg width="220" height="220" viewBox="-10 0 220 220"><circle cx="100" cy="120" r="60" fill="none" stroke="#2c3e50" stroke-width="3"/><circle cx="100" cy="120" r="3" fill="#2c3e50"/><path d="M 40,120 A 75,75 0 1,1 160,120" fill="none" stroke="#e67e22" stroke-width="3" marker-end="url(#arrow-orange)" marker-start="url(#arrow-orange)"/><text x="100" y="30" text-anchor="middle" fill="#2c3e50" font-weight="bold" font-size="16">圓周 = ${v} cm</text></svg>`;}
-            document.getElementById('question-text').innerHTML=q; document.getElementById('visual-area').innerHTML=svg; state.answer=roundTo(a,2); state.unit="cm"; document.getElementById('unit-label').textContent="cm";
+        let optionsArray = Array.from(options);
+        // 打亂選項順序
+        for (let i = optionsArray.length - 1; i > 0; i--) {
+            const j = rand(0, i);
+            [optionsArray[i], optionsArray[j]] = [optionsArray[j], optionsArray[i]];
         }
 
-        function generateIrregularPerimeter() {
-            document.getElementById('visual-area').style.display = 'flex'; const pi = 3.14, subType = randomInt(1, 8), s = 1.5; let qText = "求下列圖形的周界。 (取 &pi; = 3.14)", svg = "", ans = 0; const drawLabel = (x, y, txt, align="middle") => `<text x="${x}" y="${y}" class="dim-text" text-anchor="${align}" dominant-baseline="middle" style="font-size:${14*s}px">${txt}</text>`;
-            if (subType === 1) { const r=randomInt(5,12), d=r*2; ans=d+(d*pi/2); state.solution=`${d}+(${d}×3.14÷2)=${roundTo(ans)}`; svg=`<svg width="${200*s}" height="${150*s}" viewBox="0 0 200 150"><g transform="scale(${s})"><path d="M 50,50 A 50,50 0 0,0 150,50 L 50,50 Z" class="shape-stroke"/><line x1="50" y1="50" x2="150" y2="50" stroke="#333" marker-start="url(#arrow)" marker-end="url(#arrow)"/></g>${drawLabel(100*s,35*s,d+" cm")}</svg>`; }
-            else if (subType === 2) { const r=randomInt(8,16); ans=2*r+(2*pi*r/4); state.solution=`${r}×2+(${r}×2×3.14÷4)=${roundTo(ans)}`; svg=`<svg width="${200*s}" height="${200*s}" viewBox="0 0 200 200"><g transform="scale(${s})"><path d="M 50,120 L 150,120 A 100,100 0 0,0 50,20 L 50,120 Z" class="shape-stroke"/></g>${drawLabel(100*s,135*s,r+" cm")}</svg>`; }
-            else if (subType === 3) { const r=randomInt(5,10); ans=2*r+(2*pi*r*0.75); state.solution=`${r}×2+(${r}×2×3.14×0.75)=${roundTo(ans)}`; svg=`<svg width="${200*s}" height="${200*s}" viewBox="0 0 200 200"><g transform="scale(${s}) translate(-20,0)"><path d="M 80,110 L 80,50 A 60,60 0 1,1 140,110 L 80,110 Z" class="shape-stroke"/></g>${drawLabel(110*s,125*s,r+" cm")}</svg>`; }
-            else if (subType === 4) { const r=randomInt(4,8), l=randomInt(8,15); ans=2*l+(2*pi*r); state.solution=`${l}×2+(${r}×2×3.14)=${roundTo(ans)}`; svg=`<svg width="${250*s}" height="${150*s}" viewBox="0 0 250 150"><g transform="scale(${s})"><path d="M 50,50 L ${50+l*4},50 A 30,30 0 0,1 ${50+l*4},110 L 50,110 A 30,30 0 0,1 50,50 Z" class="shape-stroke"/><line x1="50" y1="125" x2="${50+l*4}" y2="125" stroke="#333" marker-start="url(#arrow)" marker-end="url(#arrow)"/><line x1="15" y1="50" x2="15" y2="110" stroke="#333" marker-start="url(#arrow)" marker-end="url(#arrow)"/></g>${drawLabel((50 + l*2)*s,140*s,l+" cm")} ${drawLabel(10*s,80*s,r*2+" cm","end")}</svg>`; }
-            else if (subType === 5) { const w=randomInt(5,8)*2, h=randomInt(8,15), r=w/2; ans=w+2*h+(pi*r); state.solution=`${w}+${h}×2+(${w}×3.14÷2)=${roundTo(ans)}`; const by=110; svg=`<svg width="${200*s}" height="${220*s}" viewBox="0 0 200 220"><g transform="scale(${s})"><path d="M 50,${by} L 50,${by-h*3} A ${w*1.5},${w*1.5} 0 0,1 ${50+w*3},${by-h*3} L ${50+w*3},${by} Z" class="shape-stroke"/><line x1="50" y1="${by+15}" x2="${50+w*3}" y2="${by+15}" stroke="#333" marker-start="url(#arrow)" marker-end="url(#arrow)"/><line x1="35" y1="${by}" x2="35" y2="${by-h*3}" stroke="#333" marker-start="url(#arrow)" marker-end="url(#arrow)"/></g>${drawLabel((50+w*1.5)*s,(by+30)*s,w+" cm")} ${drawLabel(25*s,(by-h*1.5)*s,h+" cm","end")}</svg>`; }
-            else if (subType === 6) { const w=randomInt(12,18), h=randomInt(12,18), r=w/2; ans=2*h+w+(pi*r); state.solution=`${h}×2+${w}+(${w}×3.14÷2)=${roundTo(ans)}`; svg=`<svg width="${220*s}" height="${220*s}" viewBox="0 0 220 220"><g transform="scale(${s})"><path d="M 50,50 L ${50+w*3},50 L ${50+w*3},${50+h*3} L 50,${50+h*3} A ${w*1.5},${w*1.5} 0 0,0 50,50" class="shape-stroke" fill="none"/></g>${drawLabel((50+w*1.5)*s,35*s,w+" cm")} ${drawLabel((50+w*3+15)*s,(50+h*1.5)*s,h+" cm","start")}</svg>`; }
-            else if (subType === 7) { const side=randomInt(6,12), d=randomInt(4,8); ans=2*side+(pi*d/2); state.solution=`${side}×2+(${d}×3.14÷2)=${roundTo(ans)}`; svg=`<svg width="${200*s}" height="${220*s}" viewBox="0 0 200 220"><g transform="scale(${s})"><path d="M 70,50 L 100,130 L 130,50" class="shape-stroke" fill="none"/><path d="M 70,50 A 30,30 0 0,1 130,50" class="shape-stroke" fill="none"/><line x1="70" y1="50" x2="130" y2="50" stroke="#7f8c8d" stroke-dasharray="4"/><text x="130" y="90" class="dim-text" style="font-size:12px; fill:#34495e">${side} cm</text></g>${drawLabel(100*s,30*s,d+" cm")}</svg>`; }
-            else { const side=randomInt(5,8); ans=2*pi*side; state.solution=`${side}×2×3.14×2=${roundTo(ans)}`; const sc=3, cx=100, cy=80; svg=`<svg width="${200*s}" height="${200*s}" viewBox="0 0 200 200"><g transform="scale(${s})"><path d="M ${cx-30},${cy-30} A ${side*sc/2},${side*sc/2} 0 0,1 ${cx+30},${cy-30} A ${side*sc/2},${side*sc/2} 0 0,1 ${cx+30},${cy+30} A ${side*sc/2},${side*sc/2} 0 0,1 ${cx-30},${cy+30} A ${side*sc/2},${side*sc/2} 0 0,1 ${cx-30},${cy-30} Z" class="shape-stroke"/><rect x="${cx-30}" y="${cy-30}" width="60" height="60" fill="none" stroke="#bdc3c7" stroke-dasharray="4"/></g>${drawLabel(cx*s,cy*s,side+" cm")}</svg>`; }
-            document.getElementById('question-text').innerHTML=qText; document.getElementById('visual-area').innerHTML=svg; state.answer=roundTo(ans,2); state.unit="cm"; document.getElementById('unit-label').textContent="cm";
+        optionButtons.forEach((button, index) => {
+            button.textContent = optionsArray[index];
+            button.onclick = () => checkAnswer(parseInt(button.textContent));
+        });
+    }
+
+    // 檢查答案
+    function checkAnswer(selectedAnswer) {
+        if (!gameActive) return;
+
+        let isCorrect = selectedAnswer === correctAnswer;
+        
+        optionButtons.forEach(btn => btn.disabled = true);
+
+        const button = Array.from(optionButtons).find(btn => parseInt(btn.textContent) === selectedAnswer);
+        
+        const flashClass = isCorrect ? 'correct-flash' : 'wrong-flash';
+        if (button) {
+            button.classList.add(flashClass);
         }
 
-        function generatePercentUnderstanding() { document.getElementById('visual-area').style.display='flex'; const c=randomInt(1,99); let s=`<svg width="220" height="220" viewBox="0 0 220 220"><rect x="10" y="10" width="200" height="200" fill="none" stroke="#333" stroke-width="2"/>`; for(let i=0;i<100;i++){const x=10+(i%10)*20,y=10+Math.floor(i/10)*20; s+=`<rect x="${x}" y="${y}" width="20" height="20" class="${i<c?'grid-filled':'grid-rect'}"/>`;} s+=`</svg>`; document.getElementById('visual-area').innerHTML=s; document.getElementById('question-text').innerHTML="圖中著色部分佔全圖的百分之幾？"; state.answer=c; state.unit="%"; state.solution=`${c}/100 = ${c}%`; document.getElementById('unit-label').textContent="%"; }
-        function generatePercentConversion() { document.getElementById('visual-area').style.display='none'; const t=randomInt(1,5); if(t===1){const p=randomInt(1,100);document.getElementById('question-text').innerHTML=`把 ${p}% 化為小數。`;state.answer=p/100;state.solution=`${p}÷100=${p/100}`;state.unit="";} else if(t===2){const d=randomInt(1,99)/100;document.getElementById('question-text').innerHTML=`把 ${d} 化為百分數。`;state.answer=Math.round(d*100);state.solution=`${d}×100%=${state.answer}%`;state.unit="%";} else if(t===3){const den=[2,4,5,10,20,25,50][randomInt(0,6)],nu=randomInt(1,den-1),di=gcd(nu,den);document.getElementById('question-text').innerHTML=`把 ${(nu/den)*100}% 化為<b>最簡分數</b>。(格式如: 1/2)`;state.answer=`${nu/di}/${den/di}`;state.solution=`${(nu/den)*100}%=${num/div}/${den/div}`;state.unit="";} else if(t===4){const den=[2,4,5,10,20,25,50][randomInt(0,6)],nu=randomInt(1,den-1);document.getElementById('question-text').innerHTML=`把 ${nu}/${den} 化為百分數。`;state.answer=(nu/den)*100;state.solution=`${nu}÷${den}×100%=${state.answer}%`;state.unit="%";} else{const bp=randomInt(10,90),den=[2,4,5,10,20,25,50][randomInt(0,6)],nu=randomInt(1,den-1),fp=(nu/den)*100;document.getElementById('question-text').innerHTML=`比較大小： ${bp}% <input type="text" disabled style="width:30px;" value="?"> ${nu}/${den} (輸入 >,<,=)`;state.answer=bp>fp?">":(bp<fp?"<":"=");state.solution=`${nu}/${den}=${fp}%`;state.unit="";} document.getElementById('unit-label').textContent=state.unit; }
-        function generatePercentageWordProblems() { document.getElementById('visual-area').style.display='none'; const t=randomInt(1,6); if(t===1){const w=randomInt(10,50)*10,p=randomInt(5,19)*5,pt=(w*p)/100;document.getElementById('question-text').innerHTML=`有 ${w} 人，${pt} 人戴眼鏡。戴眼鏡的佔百分之幾？`;state.answer=p;state.solution=`${pt}÷${w}×100%=${p}%`;state.unit="%";} else if(t===2){const w=randomInt(5,40)*10,p=randomInt(1,19)*5;document.getElementById('question-text').innerHTML=`有 ${w} 個球，${p}% 是紅的。紅球有多少個？`;state.answer=(w*p)/100;state.solution=`${w}×${p}%=${state.answer}`;state.unit="個";} else {const w=randomInt(10,50)*10,r=randomInt(1,9)*10;document.getElementById('question-text').innerHTML=`書本 ${w} 頁，看了 ${r}%。還有多少頁未看？`;state.answer=w*(100-r)/100;state.solution=`${w}×(1-${r}%)=${state.answer}`;state.unit="頁";} document.getElementById('unit-label').textContent=state.unit; }
-        function generateVolUnit() { document.getElementById('visual-area').style.display='none'; const v=(randomInt(1,50)+1)/10; document.getElementById('question-text').innerHTML=`${v} L = ___ mL`; state.answer=v*1000; state.unit="mL"; state.solution=`${v}×1000=${v*1000}`; document.getElementById('unit-label').textContent="mL"; }
-
-        function checkAnswer() {
-            const input = document.getElementById('user-answer');
-            const userVal = input.value.trim();
-            const fb = document.getElementById('feedback');
-            const checkBtn = document.getElementById('check-btn');
-
-            if (input.value === "") { alert("請輸入數字！"); return; }
-            const isCorrect = Math.abs(parseFloat(userVal) - state.answer) < 0.05;
+        setTimeout(() => {
+            if (button) {
+                button.classList.remove(flashClass);
+            }
 
             if (isCorrect) {
-                fb.innerHTML = `🎉 答對了！答案是 ${state.answer} ${state.unit}`;
-                fb.className = "feedback correct";
-                checkBtn.disabled = true;
-                document.getElementById('next-btn').style.display = 'inline-block';
+                score++;
+                scoreEl.textContent = score;
+                if (currentMode === 'fast') {
+                    resetFastTimer();
+                }
+                generateQuestion();
             } else {
-                fb.innerHTML = `❌ 答錯了。<br><b>正確答案：</b> ${state.answer} ${state.unit}<br><div class="solution-step"><b>解題步驟：</b><br>${state.solution}</div>`;
-                fb.className = "feedback wrong";
+                if (currentMode === 'fast') {
+                    endGame();
+                    return;
+                } else if (currentMode === 'minute') {
+                    timeLeft -= WRONG_PENALTY;
+                    if (timeLeft < 0) {
+                        timeLeft = 0;
+                    }
+                    timerEl.textContent = timeLeft;
+                    generateQuestion();
+                }
             }
-            fb.style.display = "block";
+
+        }, 200);
+    }
+
+    // --- 極速模式計時邏輯 ---
+    function startFastTimer() {
+        timeLeft = MAX_TIME_FAST;
+        timerEl.textContent = timeLeft;
+        fastTimerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(fastTimerInterval);
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function resetFastTimer() {
+        clearInterval(fastTimerInterval);
+        startFastTimer();
+    }
+
+    // --- 1分鐘模式計時邏輯 ---
+    function startMinuteTimer() {
+        timeLeft = MAX_TIME_MINUTE;
+        timerEl.textContent = timeLeft;
+        minuteTimerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(minuteTimerInterval);
+                endGame();
+            }
+        }, 1000);
+    }
+
+    // --- 遊戲控制 ---
+    function startGame() {
+        currentGrade = parseInt(gradeSelect.value);
+        currentMode = modeSelect.value;
+        score = 0;
+        scoreEl.textContent = 0;
+        gameActive = true;
+        
+        selectionPanel.style.display = 'none';
+        resultPanel.style.display = 'none';
+        gamePanel.style.display = 'block';
+
+        timerEl.textContent = currentMode === 'fast' ? MAX_TIME_FAST : MAX_TIME_MINUTE;
+
+        generateQuestion();
+        
+        if (currentMode === 'fast') {
+            startFastTimer();
+        } else if (currentMode === 'minute') {
+            startMinuteTimer();
         }
-    </script>
+    }
+
+    function endGame() {
+        gameActive = false;
+        clearInterval(fastTimerInterval);
+        clearInterval(minuteTimerInterval);
+        
+        finalScoreEl.textContent = score;
+        
+        gamePanel.style.display = 'none';
+        resultPanel.style.display = 'block';
+    }
+
+    function restartGame() {
+        selectionPanel.style.display = 'block';
+        gamePanel.style.display = 'none';
+        resultPanel.style.display = 'none';
+        
+        clearInterval(fastTimerInterval);
+        clearInterval(minuteTimerInterval);
+        
+        timerEl.textContent = MAX_TIME_FAST;
+    }
+
+    // 事件監聽器
+    startButton.addEventListener('click', startGame);
+    restartButton.addEventListener('click', restartGame);
+    
+    // 初始化時的計時器顯示
+    timerEl.textContent = MAX_TIME_FAST;
+</script>
+
 </body>
 </html>
