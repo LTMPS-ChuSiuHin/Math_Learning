@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>藍循 4E 數學同步互動課堂</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js 核心庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+    <!-- KaTeX 數學公式渲染庫 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <!-- FontAwesome 圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { 
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif; 
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #dbeafe 100%); 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+            user-select: none;
+        }
+        
+        .np-card { 
+            background: rgba(255, 255, 255, 0.96); 
+            backdrop-filter: blur(12px);
+            border-radius: 24px; 
+            box-shadow: 0 12px 36px -4px rgba(30, 58, 138, 0.08); 
+            border: 1px solid rgba(255, 255, 255, 0.85);
+        }
+        
+        /* 視圖切換動畫 */
+        .sync-view { display: none; }
+        .sync-view.active { 
+            display: flex; 
+            animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+        @keyframes slideUpFade { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        /* 便利貼彈出動畫 */
+        .sticky-note { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { 
+            from { opacity: 0; transform: scale(0.85); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
+
+        /* ==================== 數學專用畫布背景樣式 ==================== */
+        #drawing-board { touch-action: none; cursor: crosshair; }
+        
+        /* 1. 空白背景 */
+        .bg-math-blank { background-color: #ffffff; }
+        
+        /* 2. 方格紙 (Grid) */
+        .bg-math-grid {
+            background-color: #ffffff;
+            background-image: 
+                linear-gradient(to right, #cbd5e1 1px, transparent 1px),
+                linear-gradient(to bottom, #cbd5e1 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        
+        /* 3. 點陣板 (Dot / Geoboard) */
+        .bg-math-dots {
+            background-color: #ffffff;
+            background-image: radial-gradient(#64748b 2px, transparent 2px);
+            background-size: 36px 36px;
+            background-position: 18px 18px;
+        }
+
+        /* 4. 數線背景 (Number Line) */
+        .bg-math-numberline {
+            background-color: #ffffff;
+            background-image: 
+                linear-gradient(to bottom, transparent 49.5%, #0f172a 49.5%, #0f172a 50.5%, transparent 50.5%),
+                linear-gradient(to right, #94a3b8 1.5px, transparent 1.5px);
+            background-size: 100% 100%, 48px 24px;
+            background-repeat: no-repeat, repeat-x;
+            background-position: center, left center;
+        }
+
+        /* 5. 直式計算對位格 (Vertical Calculation Columns) */
+        .bg-math-vertical {
+            background-color: #ffffff;
+            background-image: 
+                linear-gradient(to right, #bae6fd 2px, transparent 2px),
+                linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+            background-size: 64px 100%, 100% 48px;
+        }
+
+        /* 自訂捲軸 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.03); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6); }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col">
+
+    <!-- ==================== 全班專注鎖屏遮罩 (僅鎖定學生端) ==================== -->
+    <div id="lock-screen-overlay" class="hidden fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center text-white p-6 text-center select-none">
+        <div class="w-28 h-28 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-6 animate-bounce">
+            <i class="fa-solid fa-eye text-5xl text-amber-400"></i>
+        </div>
+        <h2 class="text-4xl font-black tracking-wide mb-3 text-amber-300">請放下 iPad，專心看老師！</h2>
+        <p class="text-xl text-slate-300 font-medium max-w-md">老師正在講解重要數學概念，請將視線移回黑板或大螢幕。</p>
+        <div class="mt-8 px-4 py-2 rounded-full bg-white/10 text-xs text-slate-400 font-bold tracking-widest uppercase">
+            畫面已由老師暫時鎖定
+        </div>
+    </div>
+
+    <!-- ==================== 隨機抽籤全班同步彈窗 ==================== -->
+    <div id="picker-modal" class="hidden fixed inset-0 z-[90] bg-slate-900/75 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl border-4 border-amber-400 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-100 rounded-full opacity-50"></div>
+            <span class="bg-amber-100 text-amber-800 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">4E 班幸運抽籤</span>
+            <div class="my-8 py-8 px-4 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl text-white shadow-inner">
+                <div id="picker-seat-badge" class="text-xl font-bold text-amber-300 mb-1">準備中...</div>
+                <div id="picker-name-display" class="text-5xl font-black tracking-wider">？？？</div>
+            </div>
+            <!-- 老師專屬控制按鈕 -->
+            <div id="teacher-picker-controls" class="hidden flex flex-col gap-3">
+                <div class="flex justify-center gap-2 text-xs font-bold text-slate-600 mb-1">
+                    <label class="flex items-center gap-1 cursor-pointer bg-slate-100 px-3 py-1.5 rounded-lg">
+                        <input type="checkbox" id="picker-online-only" class="accent-indigo-600"> 僅抽在線學生
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer bg-slate-100 px-3 py-1.5 rounded-lg">
+                        <input type="checkbox" id="picker-no-repeat" checked class="accent-indigo-600"> 不重複抽取
+                    </label>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-trigger-roll" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black py-3 rounded-xl shadow-lg transition active:scale-95">
+                        <i class="fa-solid fa-dice mr-1"></i> 開始抽籤
+                    </button>
+                    <button id="btn-reset-picker-pool" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-3 rounded-xl text-sm transition" title="重置已抽過的名單">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+                <button id="btn-close-picker" class="mt-2 text-slate-400 hover:text-slate-600 text-sm font-bold py-1">關閉抽籤視窗 (全班同步關閉)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 老師端：放大檢視學生手寫畫板彈窗 ==================== -->
+    <div id="zoom-draw-modal" class="hidden fixed inset-0 z-[95] bg-slate-900/85 backdrop-blur-md flex items-center justify-center p-4 md:p-8">
+        <div class="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border-2 border-teal-400">
+            <div class="bg-teal-900 text-white px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span id="zoom-student-group" class="bg-teal-500 text-white text-xs font-black px-3 py-1 rounded-full">第 ? 組</span>
+                    <h3 id="zoom-student-name" class="text-2xl font-black tracking-wide">學生姓名</h3>
+                    <span class="text-xs text-teal-200 font-bold ml-2"><i class="fa-solid fa-bolt text-amber-300 mr-1"></i>即時同步檢視中</span>
+                </div>
+                <button id="btn-close-zoom" class="w-10 h-10 rounded-full bg-white/10 hover:bg-rose-500 flex items-center justify-center text-xl transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="zoom-canvas-container" class="flex-1 overflow-auto p-6 flex items-center justify-center bg-slate-100">
+                <div id="zoom-bg-preview" class="bg-white rounded-2xl shadow-lg border border-slate-300 overflow-hidden max-w-full">
+                    <img id="zoom-draw-img" src="" class="max-h-[72vh] w-auto object-contain block" alt="學生畫板放大圖">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 老師端：4E 班出席與學號管理彈窗 ==================== -->
+    <div id="roster-modal" class="hidden fixed inset-0 z-[95] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-indigo-900 text-white px-6 py-4 flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-black">4E 班出席狀態與學號鎖定管理</h3>
+                    <p class="text-xs text-indigo-200 mt-0.5">點擊已登入的學生可「強制登出/釋放學號」（解決學生誤選別人學號的問題）</p>
+                </div>
+                <button id="btn-close-roster" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="roster-grid" class="p-6 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                <!-- JS 動態生成 1-32 號狀態 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 頂部狀態列 (進入房間後顯示) ==================== -->
+    <header id="top-bar" class="hidden bg-white/90 backdrop-blur-md border-b border-indigo-100 px-4 py-2.5 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            <!-- 左側：標題與身份 -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white font-black text-sm shadow">
+                    4E
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-slate-800 text-base sm:text-lg leading-tight">藍循數學互動課堂</h1>
+                    <div class="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="status-role-badge">連線中</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中間：同步倒數計時器顯示器 -->
+            <div id="timer-display-badge" class="hidden items-center gap-2 bg-slate-900 text-white px-5 py-1.5 rounded-full shadow-lg border-2 border-indigo-400">
+                <i class="fa-regular fa-clock text-amber-400 animate-spin" style="animation-duration: 4s;"></i>
+                <span id="timer-mm-ss" class="font-mono text-2xl font-black tracking-widest text-amber-300">00:00</span>
+            </div>
+
+            <!-- 右側：教師快捷控場工具 & 房號人數 -->
+            <div class="flex items-center gap-2">
+                <!-- 老師專屬頂部控場按鈕 -->
+                <div id="teacher-top-quicktools" class="hidden items-center gap-1.5 mr-1">
+                    <!-- 專注鎖屏按鈕 -->
+                    <button id="btn-toggle-lock" class="bg-slate-100 hover:bg-amber-100 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-lock"></i> <span id="lock-btn-text">專注鎖屏</span>
+                    </button>
+                    <!-- 倒數計時下拉選單 -->
+                    <div class="relative group">
+                        <button id="btn-timer-menu" class="bg-slate-100 hover:bg-indigo-50 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-stopwatch text-indigo-600"></i> 計時器
+                        </button>
+                        <div id="timer-dropdown" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
+                            <div class="text-[11px] font-bold text-slate-400 px-2 py-1">啟動全班同步倒數</div>
+                            <button data-sec="30" class="timer-opt w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-indigo-50 text-slate-700">⏱️ 30 秒 (快速搶答)</button>
+                            <button data-sec="60" class="timer-opt w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-indigo-50 text-slate-700">⏱️ 1 分鐘 (常規計算)</button>
+                            <button data-sec="180" class="timer-opt w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-indigo-50 text-slate-700">⏱️ 3 分鐘 (小組討論)</button>
+                            <button data-sec="300" class="timer-opt w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-indigo-50 text-slate-700">⏱️ 5 分鐘 (解難挑戰)</button>
+                            <div class="border-t my-1"></div>
+                            <button data-sec="0" class="timer-opt w-full text-left px-3 py-1.5 text-xs font-bold rounded-lg hover:bg-rose-50 text-rose-600"><i class="fa-solid fa-stop mr-1"></i>停止並隱藏計時</button>
+                        </div>
+                    </div>
+                    <!-- 隨機抽籤按鈕 -->
+                    <button id="btn-open-picker" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-dice"></i> 抽籤
+                    </button>
+                </div>
+
+                <!-- 房號與在線名單 -->
+                <div class="bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-xl flex items-center gap-1.5">
+                    <span class="text-[11px] font-bold text-indigo-500">房號</span>
+                    <span id="header-room-code" class="text-lg font-black text-indigo-700 tracking-wider">----</span>
+                </div>
+                <button id="btn-open-roster" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-emerald-700 font-bold text-xs transition" title="點擊查看 4E 班出席名單">
+                    <i class="fa-solid fa-users"></i>
+                    <span id="online-count">0</span>/32
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== 1. 登入大廳 (4E 學號防重複選單) ==================== -->
+    <div id="login-view" class="flex-1 flex items-center justify-center p-4 min-h-screen">
+        <div class="np-card w-full max-w-md p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2.5 bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400"></div>
+            
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-200 transform -rotate-3">
+                    <i class="fa-solid fa-calculator text-3xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">藍田循道衞理小學</h1>
+                <p class="text-indigo-600 text-base font-extrabold mt-0.5">4E 班數學同步互動課堂</p>
+            </div>
+            
+            <div class="space-y-5">
+                <!-- 老師入口 -->
+                <div class="bg-indigo-50/80 p-3.5 rounded-2xl border border-indigo-100">
+                    <div class="text-xs font-bold text-indigo-600 mb-2"><i class="fa-solid fa-chalkboard-user mr-1"></i>老師主持課堂</div>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-custom-room" value="4E" placeholder="房號 (預設 4E)" class="w-1/2 bg-white border border-indigo-200 px-3 py-2 rounded-xl text-sm font-black text-center uppercase focus:outline-none focus:border-indigo-500">
+                        <button id="btn-teacher-create" class="w-1/2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold py-2 px-4 rounded-xl shadow hover:shadow-md active:scale-95 transition text-sm">
+                            開設 / 進入房間
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative flex items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink-0 mx-3 text-slate-400 text-xs font-bold uppercase tracking-widest">4E 班學生登入</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <!-- 學生入口 (選學號防重複) -->
+                <div class="space-y-3.5">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">1. 房間代碼 (預設為 4E)</label>
+                        <input type="text" id="input-room-code" value="4E" placeholder="輸入房間代碼" class="w-full bg-white border-2 border-slate-200 p-2.5 rounded-xl text-center text-xl font-black tracking-widest text-indigo-700 uppercase focus:border-indigo-500 focus:outline-none transition">
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="w-2/3">
+                            <label class="text-xs font-bold text-slate-500 ml-1 mb-1 flex justify-between">
+                                <span>2. 選擇你的學號與姓名</span>
+                                <span id="seat-sync-hint" class="text-[11px] text-emerald-600 font-bold">即時檢查中...</span>
+                            </label>
+                            <select id="select-student-seat" class="w-full bg-white border-2 border-slate-200 p-3 rounded-xl font-bold text-slate-800 focus:border-indigo-500 focus:outline-none transition">
+                                <option value="">-- 請選擇學號 (1-32) --</option>
+                            </select>
+                        </div>
+                        <div class="w-1/3">
+                            <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">3. 組別</label>
+                            <select id="input-student-group" class="w-full bg-white border-2 border-slate-200 p-3 rounded-xl font-bold text-center focus:border-indigo-500 focus:outline-none transition">
+                                <option value="1">第 1 組</option>
+                                <option value="2">第 2 組</option>
+                                <option value="3">第 3 組</option>
+                                <option value="4">第 4 組</option>
+                                <option value="5">第 5 組</option>
+                                <option value="6">第 6 組</option>
+                                <option value="7">第 7 組</option>
+                                <option value="8">第 8 組</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="btn-student-join" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-lg py-3.5 rounded-xl shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-[1.01] active:scale-95 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-to-bracket"></i> 確認學號並進入課堂
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. 主課堂容器 (師生共用) ==================== -->
+    <main id="main-content" class="hidden flex-1 flex flex-col pt-3 pb-28 px-4 w-full max-w-7xl mx-auto gap-4">
+
+        <!-- 老師專屬：即時出題與數學符號快捷列 -->
+        <section id="teacher-dashboard" class="hidden np-card p-4 bg-indigo-950/95 text-white border-indigo-800 space-y-3">
+            <div class="flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-400 text-slate-900 text-xs font-black px-2.5 py-1 rounded-md uppercase">教師控制台</span>
+                    <span id="teacher-mode-hint" class="text-sm font-bold text-indigo-200">目前模式：課堂簡報</span>
+                </div>
+
+                <!-- 數學公式 LaTeX 快捷插入按鈕 (出題時一鍵插入) -->
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                    <span class="text-indigo-300 font-bold mr-1"><i class="fa-solid fa-square-root-variable mr-1"></i>插入數學符號：</span>
+                    <button type="button" data-latex="$\frac{a}{b}$" class="latex-insert-btn bg-indigo-800 hover:bg-indigo-700 px-2.5 py-1 rounded font-bold transition">分數 $\frac{a}{b}$</button>
+                    <button type="button" data-latex="$a \times b$" class="latex-insert-btn bg-indigo-800 hover:bg-indigo-700 px-2.5 py-1 rounded font-bold transition">乘號 $\times$</button>
+                    <button type="button" data-latex="$a \div b$" class="latex-insert-btn bg-indigo-800 hover:bg-indigo-700 px-2.5 py-1 rounded font-bold transition">除號 $\div$</button>
+                    <button type="button" data-latex="$\triangle ABC$" class="latex-insert-btn bg-indigo-800 hover:bg-indigo-700 px-2.5 py-1 rounded font-bold transition">$\triangle$</button>
+                    <button type="button" data-latex="$90^\circ$" class="latex-insert-btn bg-indigo-800 hover:bg-indigo-700 px-2.5 py-1 rounded font-bold transition">角度 $^\circ$</button>
+                </div>
+            </div>
+
+            <div class="border-t border-indigo-800/80 pt-3 flex flex-wrap justify-between items-center gap-3">
+                <!-- A. 簡報上傳與翻頁工具 -->
+                <div id="t-tool-pdf" class="t-tool flex flex-wrap items-center gap-2 w-full justify-between">
+                    <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-arrow-up"></i> 上載 PDF 簡報或圖片
+                        <input type="file" id="file-upload" accept="application/pdf,image/*" class="hidden">
+                    </label>
+                    <div id="pdf-page-controls" class="flex items-center gap-1 bg-indigo-900 px-3 py-1 rounded-lg border border-indigo-700">
+                        <button id="btn-prev-page" class="w-7 h-7 flex items-center justify-center rounded hover:bg-indigo-700 transition"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span class="text-sm font-bold px-3"><span id="page-num">1</span> / <span id="page-count">1</span></span>
+                        <button id="btn-next-page" class="w-7 h-7 flex items-center justify-center rounded hover:bg-indigo-700 transition"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- B. 選擇題出題工具 -->
+                <div id="t-tool-mcq" class="t-tool hidden flex flex-wrap items-center gap-2 w-full">
+                    <input type="text" id="t-mcq-q" placeholder="輸入題目，支援公式如：下列哪一個分數等於 $\frac{1}{2}$ ？" class="math-target-input flex-1 bg-indigo-900/90 border border-indigo-700 rounded-lg px-3 py-2 text-sm text-white placeholder-indigo-300 focus:outline-none">
+                    <button id="btn-push-mcq" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-black px-4 py-2 rounded-lg text-sm transition">發佈新題並清空統計</button>
+                </div>
+
+                <!-- C. 數字鍵盤題出題工具 -->
+                <div id="t-tool-numpad" class="t-tool hidden flex flex-wrap items-center gap-2 w-full">
+                    <input type="text" id="t-numpad-q" placeholder="輸入算術題目 (如: 計算 $\frac{1}{4} + \frac{2}{4}$ 的值)" class="math-target-input flex-1 bg-indigo-900/90 border border-indigo-700 rounded-lg px-3 py-2 text-sm text-white placeholder-indigo-300 focus:outline-none">
+                    <input type="text" id="t-numpad-ans" placeholder="標準答案(如: 3/4)" class="w-36 bg-indigo-900/90 border border-indigo-700 rounded-lg px-3 py-2 text-sm text-white placeholder-indigo-300 text-center focus:outline-none">
+                    <button id="btn-push-numpad" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-black px-4 py-2 rounded-lg text-sm transition">派發題目</button>
+                </div>
+
+                <!-- D. 畫板工具 (含數學專用網格背景切換) -->
+                <div id="t-tool-draw" class="t-tool hidden flex flex-wrap items-center gap-2 w-full justify-between">
+                    <div class="flex items-center gap-2 flex-1 min-w-[260px]">
+                        <input type="text" id="t-draw-q" placeholder="輸入畫板題目指示 (支援 $公式$)..." class="math-target-input flex-1 bg-indigo-900/90 border border-indigo-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-indigo-300 focus:outline-none">
+                        <button id="btn-push-draw" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-sm transition shrink-0">更新題目</button>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-bold text-indigo-200"><i class="fa-solid fa-border-all mr-1"></i>全班畫布底圖：</span>
+                        <select id="t-draw-bg-select" class="bg-indigo-900 border border-indigo-600 text-white text-xs font-bold rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <option value="grid">📏 方格紙 (面積/周界)</option>
+                            <option value="blank">⬜ 純白畫布 (自由計算)</option>
+                            <option value="dots">⠿ 點陣板 (幾何/多邊形)</option>
+                            <option value="numberline">↔️ 數線 (分數/小數)</option>
+                            <option value="vertical">🧮 直式對位格 (四則運算)</option>
+                        </select>
+                        <button id="btn-clear-all-draws" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition">清空全班畫板</button>
+                    </div>
+                </div>
+
+                <!-- E. 討論板工具 -->
+                <div id="t-tool-padlet" class="t-tool hidden flex flex-wrap items-center gap-2 w-full">
+                    <input type="text" id="t-padlet-q" placeholder="輸入討論主題 (支援 $公式$)..." class="math-target-input flex-1 bg-indigo-900/90 border border-indigo-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-indigo-300 focus:outline-none">
+                    <button id="btn-push-padlet" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-sm transition">設定主題</button>
+                    <button id="btn-clear-padlet" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3 py-1.5 rounded-lg text-sm transition">清空便利貼</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 視圖 A：課堂簡報 / 圖片同步 ==================== -->
+        <div id="view-pdf" class="sync-view active flex-col items-center w-full np-card p-6 flex-1">
+            <div id="pdf-container" class="relative w-full flex-1 flex flex-col items-center justify-center bg-slate-100 rounded-2xl overflow-hidden min-h-[65vh] border border-slate-200 p-2">
+                <canvas id="pdf-canvas" class="max-w-full h-auto shadow-lg rounded-lg hidden"></canvas>
+                <img id="slide-image" class="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg hidden" alt="教材圖片">
+                
+                <div id="pdf-waiting" class="flex flex-col items-center justify-center text-center p-8">
+                    <div class="w-20 h-20 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center text-3xl mb-4 animate-bounce">
+                        <i class="fa-solid fa-easel"></i>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-700">4E 班數學同步課堂已就緒</h3>
+                    <p class="text-slate-500 text-sm mt-1">老師上載 PDF 簡報或圖片教材後，畫面將會自動同步至此處。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 視圖 B：選擇題 (MCQ) ==================== -->
+        <div id="view-mcq" class="sync-view flex-col w-full np-card p-6 flex-1">
+            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-6 text-center">
+                <span class="text-xs font-black uppercase tracking-wider text-indigo-500 bg-white px-3 py-1 rounded-full shadow-sm">即時選擇題</span>
+                <h2 id="mcq-question-text" class="text-2xl md:text-3xl font-black text-slate-800 mt-3 leading-relaxed">請根據老師的題目選出正確答案</h2>
+            </div>
+
+            <div id="student-mcq-area" class="grid grid-cols-2 md:grid-cols-4 gap-4 my-auto py-2">
+                <button data-choice="A" class="mcq-btn bg-rose-500 hover:bg-rose-600 text-white rounded-2xl p-7 flex flex-col items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition">
+                    <span class="text-5xl font-black">A</span>
+                </button>
+                <button data-choice="B" class="mcq-btn bg-blue-500 hover:bg-blue-600 text-white rounded-2xl p-7 flex flex-col items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition">
+                    <span class="text-5xl font-black">B</span>
+                </button>
+                <button data-choice="C" class="mcq-btn bg-amber-500 hover:bg-amber-600 text-white rounded-2xl p-7 flex flex-col items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition">
+                    <span class="text-5xl font-black">C</span>
+                </button>
+                <button data-choice="D" class="mcq-btn bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl p-7 flex flex-col items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition">
+                    <span class="text-5xl font-black">D</span>
+                </button>
+            </div>
+            <div id="mcq-submitted-msg" class="hidden text-center py-4 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-200 mt-4">
+                <i class="fa-solid fa-circle-check mr-2"></i>你已選擇答案：<span id="my-mcq-ans" class="text-xl font-black"></span>（可點擊上方按鈕重新修改）
+            </div>
+
+            <!-- 老師端即時統計與名單 -->
+            <div id="teacher-mcq-stats" class="hidden mt-6 border-t pt-6">
+                <h3 class="font-extrabold text-slate-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-column text-indigo-600"></i> 4E 班作答即時統計</h3>
+                <div class="grid grid-cols-4 gap-4 mb-6 text-center">
+                    <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl"><span class="text-xl font-black text-rose-600">A</span><p id="stat-A" class="text-3xl font-black mt-1">0</p></div>
+                    <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl"><span class="text-xl font-black text-blue-600">B</span><p id="stat-B" class="text-3xl font-black mt-1">0</p></div>
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl"><span class="text-xl font-black text-amber-600">C</span><p id="stat-C" class="text-3xl font-black mt-1">0</p></div>
+                    <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl"><span class="text-xl font-black text-emerald-600">D</span><p id="stat-D" class="text-3xl font-black mt-1">0</p></div>
+                </div>
+                <div id="mcq-student-list" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2"></div>
+            </div>
+        </div>
+
+        <!-- ==================== 視圖 C：算術填充題 (虛擬數字鍵盤) ==================== -->
+        <div id="view-numpad" class="sync-view flex-col w-full np-card p-6 flex-1">
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 text-center">
+                <span class="text-xs font-black uppercase tracking-wider text-blue-600 bg-white px-3 py-1 rounded-full shadow-sm">算術與數值填充</span>
+                <h2 id="numpad-question-text" class="text-2xl md:text-3xl font-black text-blue-950 mt-3 leading-relaxed">求 $12$ 和 $18$ 的 L.C.M. (最小公倍數)</h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div class="lg:col-span-5 bg-slate-100 p-5 rounded-2xl border border-slate-200 max-w-sm mx-auto w-full">
+                    <div class="relative mb-3">
+                        <input type="text" id="math-answer-display" placeholder="輸入答案..." class="w-full bg-white text-right text-3xl font-black p-3.5 rounded-xl shadow-inner border-2 border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <!-- 即時分數預覽列 -->
+                    <div id="numpad-katex-preview" class="text-center text-sm text-slate-500 font-bold mb-3 min-h-[24px]"></div>
+                    <div id="virtual-numpad-container" class="grid grid-cols-4 gap-2"></div>
+                    <div id="numpad-feedback" class="hidden mt-3 text-center py-2 rounded-lg font-bold text-sm"></div>
+                </div>
+
+                <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-extrabold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-blue-600"></i> 4E 班提交狀態 (按學號排列)
+                        </h3>
+                        <button id="btn-toggle-reveal" class="hidden text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-3 py-1.5 rounded-lg transition">
+                            <i class="fa-solid fa-eye mr-1"></i>顯示/隱藏答案
+                        </button>
+                    </div>
+                    <div id="numpad-submissions-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 視圖 D：手寫計算板 (支援 5 種數學背景與點擊放大) ==================== -->
+        <div id="view-draw" class="sync-view flex-col w-full np-card p-6 flex-1">
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                <div>
+                    <h2 id="draw-question-text" class="text-xl font-black text-teal-900 flex items-center gap-2 leading-relaxed">
+                        <i class="fa-solid fa-pen-ruler text-teal-600"></i> 請在下方畫板寫出你的計算步驟
+                    </h2>
+                </div>
+                <!-- 學生畫筆與本地背景切換工具列 -->
+                <div class="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                    <button data-color="#0f172a" class="draw-color w-7 h-7 rounded-full bg-slate-900 ring-2 ring-offset-2 ring-indigo-500"></button>
+                    <button data-color="#2563eb" class="draw-color w-7 h-7 rounded-full bg-blue-600"></button>
+                    <button data-color="#e11d48" class="draw-color w-7 h-7 rounded-full bg-rose-600"></button>
+                    <button data-color="#16a34a" class="draw-color w-7 h-7 rounded-full bg-green-600"></button>
+                    <div class="h-5 w-px bg-slate-300 mx-1"></div>
+                    <button id="btn-eraser" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-700 hover:bg-slate-200 shadow-sm"><i class="fa-solid fa-eraser mr-1"></i>擦膠</button>
+                    <button id="btn-clear-draw" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-600 hover:bg-rose-200"><i class="fa-solid fa-trash-can mr-1"></i>清空</button>
+                </div>
+            </div>
+
+            <!-- 畫布本體 -->
+            <div id="draw-wrapper" class="w-full border-2 border-teal-300 rounded-2xl overflow-hidden relative bg-math-grid shadow-inner" style="height: 55vh;">
+                <canvas id="drawing-board" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- 老師專屬：全班即時畫布監控牆 (點擊任一學生可放大檢視) -->
+            <div id="teacher-draw-gallery" class="hidden mt-6 border-t pt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-extrabold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass-plus text-teal-600"></i> 全班即時畫板監控牆（<span class="text-teal-700 underline">點擊任何學生畫板可放大全螢幕講評</span>）
+                    </h3>
+                </div>
+                <div id="draw-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- ==================== 視圖 E：小組討論板 (Padlet 支援 KaTeX 公式) ==================== -->
+        <div id="view-padlet" class="sync-view flex-col w-full np-card p-6 flex-1 min-h-[75vh] bg-amber-50/40">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-amber-200/60">
+                <div>
+                    <span class="text-xs font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">小組協作看板</span>
+                    <h2 id="padlet-topic-text" class="text-2xl font-black text-slate-800 mt-1 leading-relaxed">請與組員討論並貼上你們的解題方法與發現</h2>
+                </div>
+                
+                <div class="flex items-center gap-2 self-end md:self-auto">
+                    <span class="text-xs font-bold text-slate-500">篩選組別：</span>
+                    <select id="padlet-group-filter" class="bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none">
+                        <option value="all">顯示全部組別</option>
+                        <option value="1">第 1 組</option>
+                        <option value="2">第 2 組</option>
+                        <option value="3">第 3 組</option>
+                        <option value="4">第 4 組</option>
+                        <option value="5">第 5 組</option>
+                        <option value="6">第 6 組</option>
+                        <option value="7">第 7 組</option>
+                        <option value="8">第 8 組</option>
+                        <option value="T">老師示範</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-amber-200 mb-6 flex flex-col sm:flex-row gap-3 items-center">
+                <input type="text" id="padlet-input" placeholder="輸入想法或算式 (支援 $公式$，如 $\frac{1}{2}$ )..." class="flex-1 w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-medium focus:outline-none focus:border-amber-500">
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-3 rounded-xl font-bold text-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-image text-amber-600"></i> <span id="padlet-img-label">附加圖片</span>
+                        <input type="file" id="padlet-img-input" accept="image/*" class="hidden">
+                    </label>
+                    <button id="btn-add-note" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-6 py-3 rounded-xl font-black shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> 張貼
+                    </button>
+                </div>
+            </div>
+
+            <div id="padlet-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-start"></div>
+        </div>
+
+    </main>
+
+    <!-- ==================== 3. 教師底部導航列 ==================== -->
+    <nav id="teacher-bottom-nav" class="hidden fixed bottom-0 left-0 w-full z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-700 px-4 py-3 shadow-2xl">
+        <div class="max-w-5xl mx-auto flex justify-between items-center gap-2 overflow-x-auto">
+            <span class="text-xs font-bold text-slate-400 hidden sm:inline-block shrink-0"><i class="fa-solid fa-satellite-dish text-emerald-400 mr-1 animate-pulse"></i>同步畫面：</span>
+            <div class="flex gap-2 mx-auto w-full sm:w-auto justify-around">
+                <button data-mode="pdf" class="mode-switch-btn bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-file-pdf"></i> 簡報教材
+                </button>
+                <button data-mode="mcq" class="mode-switch-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-list-ol"></i> 選擇題
+                </button>
+                <button data-mode="numpad" class="mode-switch-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-calculator"></i> 算術鍵盤
+                </button>
+                <button data-mode="draw" class="mode-switch-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-pen-nib"></i> 手寫畫板
+                </button>
+                <button data-mode="padlet" class="mode-switch-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-comments"></i> 討論看板
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Firebase 與核心互動腳本 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, get, push, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2H8wX9hk9n4Qp4-8DV9MDnWv1wZGbcqA",
+            authDomain: "song-maker-513c5.firebaseapp.com",
+            databaseURL: "https://song-maker-513c5-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "song-maker-513c5",
+            storageBucket: "song-maker-513c5.firebasestorage.app",
+            messagingSenderId: "839788095535",
+            appId: "1:839788095535:web:053550098145809ccffeda"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // ==========================================
+        // 4E 班 1-32 號學生名單常數
+        // ==========================================
+        const CLASS_4E_ROSTER = {
+            1: "陳卓謙", 2: "陳賀楠", 3: "陳子正", 4: "陳奕謙",
+            5: "陳禹衡", 6: "鄭斯豪", 7: "招卓康", 8: "莊榳昊",
+            9: "丁安妮", 10: "馮溢匡", 11: "郭慧瑤", 12: "許悅",
+            13: "關海泠", 14: "關海瑤", 15: "郭思翹", 16: "黎浠彤",
+            17: "李海琳", 18: "梁靖童", 19: "梁頌朗", 20: "梁僖悦",
+            21: "梁梓童", 22: "李詠晴", 23: "文樂兒", 24: "吳梓謙",
+            25: "吳泳汶", 26: "彭瀚程", 27: "譚健希", 28: "譚文昊",
+            29: "曾立言", 30: "謝思睿", 31: "黃芊林", 32: "俞逸澧"
+        };
+
+        // --- 全局狀態變數 ---
+        let currentRoom = "4E";
+        let role = ""; // 'teacher' | 'student'
+        let clientId = "";
+        let userInfo = { seatNo: 0, name: "老師", group: "T" };
+        let currentActiveView = "pdf";
+        let revealNumpadAnswers = false;
+        let onlineStudentsCache = {};
+        let currentDrawBgClass = "bg-math-grid";
+        let currentZoomedStudentKey = null;
+
+        // 抽籤池紀錄 (不重複抽取用)
+        let pickedHistorySet = new Set();
+
+        // 計時器變數
+        let timerInterval = null;
+        let lastBeepSec = -1;
+
+        // PDF 狀態
+        let pdfDoc = null;
+        let currentLoadedDataUrl = "";
+        let pdfCurrentPageNum = 1;
+        let pdfRenderTask = null;
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const pdfCtx = pdfCanvas.getContext('2d');
+
+        // 畫板狀態
+        const drawCanvas = document.getElementById('drawing-board');
+        const drawCtx = drawCanvas.getContext('2d');
+        let isDrawing = false;
+        let strokeColor = "#0f172a";
+        let isEraser = false;
+
+        // Padlet 狀態
+        let pendingPadletImage = "";
+        let allPadletNotes = {};
+
+        // ==========================================
+        // 輔助工具：KaTeX 數學公式自動渲染與 Web Audio 音效
+        // ==========================================
+        function renderMathInElementSafe(el) {
+            if (!el || typeof renderMathInElement !== 'function') return;
+            try {
+                renderMathInElement(el, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) { console.warn("KaTeX error:", e); }
+        }
+
+        function playBeep(freq = 880, duration = 0.12, type = 'sine') {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        // 初始渲染頁面上已有的 KaTeX 按鈕
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMathInElementSafe(document.body);
+            watchRoomSeatsForLogin("4E");
+        });
+
+        // 老師點擊快捷插入 LaTeX 公式按鈕
+        let lastFocusedInput = document.getElementById('t-mcq-q');
+        document.querySelectorAll('.math-target-input').forEach(inp => {
+            inp.addEventListener('focus', () => lastFocusedInput = inp);
+        });
+        document.querySelectorAll('.latex-insert-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!lastFocusedInput) return;
+                const latex = btn.dataset.latex;
+                const start = lastFocusedInput.selectionStart || lastFocusedInput.value.length;
+                const end = lastFocusedInput.selectionEnd || lastFocusedInput.value.length;
+                const val = lastFocusedInput.value;
+                lastFocusedInput.value = val.substring(0, start) + " " + latex + " " + val.substring(end);
+                lastFocusedInput.focus();
+            });
+        });
+
+        // ==========================================
+        // 1. 登入前：即時監聽房間內已被選走的 4E 學號
+        // ==========================================
+        let loginRoomListenerUnsub = null;
+        const roomCodeInput = document.getElementById('input-room-code');
+        
+        roomCodeInput.addEventListener('input', (e) => {
+            const code = e.target.value.trim().toUpperCase();
+            if (code) watchRoomSeatsForLogin(code);
+        });
+
+        function watchRoomSeatsForLogin(roomCode) {
+            const selectEl = document.getElementById('select-student-seat');
+            onValue(ref(db, `rooms/${roomCode}/students`), (snap) => {
+                const studentsObj = snap.val() || {};
+                const currentSelected = selectEl.value;
+                selectEl.innerHTML = '<option value="">-- 請選擇你的學號與姓名 --</option>';
+
+                for (let no = 1; no <= 32; no++) {
+                    const name = CLASS_4E_ROSTER[no];
+                    const seatKey = `seat_${no}`;
+                    const isTaken = Boolean(studentsObj[seatKey]);
+                    const opt = document.createElement('option');
+                    opt.value = no;
+                    const padNo = String(no).padStart(2, '0');
+                    if (isTaken) {
+                        opt.textContent = `${padNo} 號 - ${name} (已在線 🔒)`;
+                        opt.disabled = true;
+                    } else {
+                        opt.textContent = `${padNo} 號 - ${name}`;
+                    }
+                    selectEl.appendChild(opt);
+                }
+
+                if (currentSelected && !studentsObj[`seat_${currentSelected}`]) {
+                    selectEl.value = currentSelected;
+                }
+                document.getElementById('seat-sync-hint').innerText = `可選學號已同步`;
+            });
+        }
+
+        // 老師開房 / 進入房間
+        document.getElementById('btn-teacher-create').addEventListener('click', async () => {
+            const customCode = document.getElementById('input-custom-room').value.trim().toUpperCase();
+            const roomCode = customCode || "4E";
+            
+            try {
+                currentRoom = roomCode;
+                role = 'teacher';
+                clientId = 'teacher_host';
+                userInfo = { seatNo: 0, name: "老師", group: "T" };
+
+                const roomSnap = await get(ref(db, `rooms/${roomCode}/status`));
+                if (!roomSnap.exists()) {
+                    await update(ref(db, `rooms/${roomCode}`), {
+                        status: "active",
+                        currentView: "pdf",
+                        isLocked: false,
+                        drawBg: "grid",
+                        activity: {
+                            mcqQuestion: "請根據老師的題目選出正確答案",
+                            numpadQuestion: "求 $12$ 和 $18$ 的 L.C.M. (最小公倍數)",
+                            numpadAnswer: "36",
+                            drawQuestion: "請在下方畫板寫出你的計算步驟",
+                            padletTopic: "請與組員討論並貼上你們的解題方法與發現"
+                        }
+                    });
+                }
+                enterClassroomUI();
+            } catch (err) {
+                alert("連線失敗：" + err.message);
+            }
+        });
+
+        // 學生選擇學號登入 (防止重複登入)
+        document.getElementById('btn-student-join').addEventListener('click', async () => {
+            const code = document.getElementById('input-room-code').value.trim().toUpperCase();
+            const seatNo = parseInt(document.getElementById('select-student-seat').value, 10);
+            const group = document.getElementById('input-student-group').value;
+
+            if (!code) return alert("請輸入房間代碼！");
+            if (!seatNo || !CLASS_4E_ROSTER[seatNo]) return alert("同學，請先在下拉選單選擇你的學號與姓名！");
+
+            const seatKey = `seat_${seatNo}`;
+            const studentName = CLASS_4E_ROSTER[seatNo];
+
+            try {
+                const roomSnap = await get(ref(db, `rooms/${code}/status`));
+                if (!roomSnap.exists()) {
+                    return alert(`找不到房間「${code}」，請等待老師開設房間！`);
+                }
+
+                // 再次檢查該學號是否剛剛被選走
+                const seatSnap = await get(ref(db, `rooms/${code}/students/${seatKey}`));
+                if (seatSnap.exists()) {
+                    return alert(`${seatNo} 號 ${studentName} 已經在線！如果這不是你，請舉手請老師協助釋放學號。`);
+                }
+
+                currentRoom = code;
+                role = 'student';
+                clientId = seatKey;
+                const padNo = String(seatNo).padStart(2, '0');
+                userInfo = {
+                    seatNo: seatNo,
+                    name: `${padNo} ${studentName}`,
+                    rawName: studentName,
+                    group: group,
+                    joinedAt: Date.now()
+                };
+
+                const stuRef = ref(db, `rooms/${code}/students/${seatKey}`);
+                await set(stuRef, userInfo);
+                // 斷線或關閉分頁時自動釋放學號
+                onDisconnect(stuRef).remove();
+
+                enterClassroomUI();
+            } catch (err) {
+                alert("加入課堂失敗：" + err.message);
+            }
+        });
+
+        function enterClassroomUI() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('top-bar').classList.remove('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+
+            document.getElementById('header-room-code').innerText = currentRoom;
+            document.getElementById('status-role-badge').innerText = role === 'teacher' 
+                ? '教師主持模式' 
+                : `4E (${userInfo.name}) - 第 ${userInfo.group} 組`;
+
+            if (role === 'teacher') {
+                document.getElementById('teacher-top-quicktools').classList.remove('hidden');
+                document.getElementById('teacher-top-quicktools').classList.add('flex');
+                document.getElementById('teacher-dashboard').classList.remove('hidden');
+                document.getElementById('teacher-bottom-nav').classList.remove('hidden');
+                document.getElementById('teacher-mcq-stats').classList.remove('hidden');
+                document.getElementById('btn-toggle-reveal').classList.remove('hidden');
+                document.getElementById('teacher-draw-gallery').classList.remove('hidden');
+                document.getElementById('teacher-picker-controls').classList.remove('hidden');
+                revealNumpadAnswers = true;
+            }
+
+            bindFirebaseListeners();
+            requestAnimationFrame(() => resizeDrawCanvas());
+        }
+
+        // ==========================================
+        // 2. 核心 Firebase 即時同步監聽器
+        // ==========================================
+        function bindFirebaseListeners() {
+            // A. 監聽在線學生與更新 4E 出席名單管理視窗
+            onValue(ref(db, `rooms/${currentRoom}/students`), (snap) => {
+                onlineStudentsCache = snap.val() || {};
+                document.getElementById('online-count').innerText = Object.keys(onlineStudentsCache).length;
+                renderRosterModalGrid();
+
+                // 若當前學生被老師從後台踢出，自動跳回登入頁
+                if (role === 'student' && clientId && !onlineStudentsCache[clientId]) {
+                    alert("老師已重置你的學號連線，請重新選擇學號登入。");
+                    location.reload();
+                }
+            });
+
+            // B. 監聽全班專注鎖屏 (isLocked)
+            onValue(ref(db, `rooms/${currentRoom}/isLocked`), (snap) => {
+                const locked = Boolean(snap.val());
+                const overlay = document.getElementById('lock-screen-overlay');
+                const lockBtn = document.getElementById('btn-toggle-lock');
+                const lockText = document.getElementById('lock-btn-text');
+
+                if (role === 'student') {
+                    overlay.classList.toggle('hidden', !locked);
+                } else if (role === 'teacher') {
+                    if (locked) {
+                        lockBtn.className = "bg-amber-500 text-slate-950 border border-amber-600 px-3 py-1.5 rounded-xl font-black text-xs transition flex items-center gap-1.5 shadow-md animate-pulse";
+                        lockText.innerText = "已鎖屏 (點擊解鎖)";
+                    } else {
+                        lockBtn.className = "bg-slate-100 hover:bg-amber-100 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 shadow-sm";
+                        lockText.innerText = "專注鎖屏";
+                    }
+                }
+            });
+
+            // C. 監聽同步倒數計時器 (timer)
+            onValue(ref(db, `rooms/${currentRoom}/timer`), (snap) => {
+                const timerData = snap.val();
+                const badge = document.getElementById('timer-display-badge');
+                const display = document.getElementById('timer-mm-ss');
+
+                if (timerInterval) clearInterval(timerInterval);
+
+                if (!timerData || !timerData.active || !timerData.endTime) {
+                    badge.classList.add('hidden');
+                    badge.classList.remove('flex');
+                    return;
+                }
+
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+
+                const updateTick = () => {
+                    const remainMs = timerData.endTime - Date.now();
+                    if (remainMs <= 0) {
+                        display.innerText = "00:00";
+                        display.classList.add('text-rose-400', 'animate-bounce');
+                        clearInterval(timerInterval);
+                        playBeep(523.25, 0.4, 'triangle');
+                        return;
+                    }
+                    const totalSec = Math.ceil(remainMs / 1000);
+                    const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+                    const s = String(totalSec % 60).padStart(2, '0');
+                    display.innerText = `${m}:${s}`;
+
+                    if (totalSec <= 5) {
+                        display.classList.add('text-rose-400');
+                        if (lastBeepSec !== totalSec) {
+                            lastBeepSec = totalSec;
+                            playBeep(880, 0.08, 'sine');
+                        }
+                    } else {
+                        display.classList.remove('text-rose-400', 'animate-bounce');
+                    }
+                };
+                updateTick();
+                timerInterval = setInterval(updateTick, 250);
+            });
+
+            // D. 監聽隨機抽籤同步狀態 (picker)
+            onValue(ref(db, `rooms/${currentRoom}/picker`), (snap) => {
+                const picker = snap.val();
+                const modal = document.getElementById('picker-modal');
+                if (!picker || !picker.active) {
+                    modal.classList.add('hidden');
+                    return;
+                }
+                modal.classList.remove('hidden');
+                const seatEl = document.getElementById('picker-seat-badge');
+                const nameEl = document.getElementById('picker-name-display');
+
+                if (picker.status === 'rolling') {
+                    seatEl.innerText = "抽籤滾動中...";
+                    let ticks = 0;
+                    const rollTimer = setInterval(() => {
+                        const randNo = Math.floor(Math.random() * 32) + 1;
+                        nameEl.innerText = `${randNo}號 ${CLASS_4E_ROSTER[randNo]}`;
+                        ticks++;
+                        if (ticks > 12) clearInterval(rollTimer);
+                    }, 80);
+                } else if (picker.status === 'picked' && picker.winnerSeat) {
+                    seatEl.innerText = `🎉 恭喜 4E 班 第 ${picker.winnerSeat} 號`;
+                    nameEl.innerText = picker.winnerName;
+                    playBeep(659.25, 0.25, 'sine');
+                }
+            });
+
+            // E. 監聽畫面模式切換 (currentView)
+            onValue(ref(db, `rooms/${currentRoom}/currentView`), (snap) => {
+                const viewName = snap.val() || 'pdf';
+                currentActiveView = viewName;
+
+                document.querySelectorAll('.sync-view').forEach(el => el.classList.remove('active'));
+                const targetEl = document.getElementById(`view-${viewName}`);
+                if (targetEl) targetEl.classList.add('active');
+
+                if (role === 'teacher') {
+                    const modeNames = { pdf: '課堂簡報', mcq: '即時選擇題', numpad: '算術填充題', draw: '手寫計算板', padlet: '小組討論板' };
+                    document.getElementById('teacher-mode-hint').innerText = `目前模式：${modeNames[viewName]}`;
+
+                    document.querySelectorAll('.t-tool').forEach(el => el.classList.add('hidden'));
+                    const activeTool = document.getElementById(`t-tool-${viewName}`);
+                    if (activeTool) activeTool.classList.remove('hidden');
+
+                    document.querySelectorAll('.mode-switch-btn').forEach(btn => {
+                        if (btn.dataset.mode === viewName) {
+                            btn.className = "mode-switch-btn bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0 shadow-lg";
+                        } else {
+                            btn.className = "mode-switch-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 shrink-0";
+                        }
+                    });
+                }
+
+                if (viewName === 'draw') {
+                    requestAnimationFrame(() => resizeDrawCanvas());
+                } else if (viewName === 'pdf' && pdfDoc) {
+                    requestAnimationFrame(() => renderPdfPage(pdfCurrentPageNum));
+                }
+            });
+
+            // F. 監聽畫板數學背景樣式切換 (drawBg)
+            onValue(ref(db, `rooms/${currentRoom}/drawBg`), (snap) => {
+                const bgType = snap.val() || 'grid';
+                const wrapper = document.getElementById('draw-wrapper');
+                const zoomPreview = document.getElementById('zoom-bg-preview');
+                const bgMap = {
+                    blank: 'bg-math-blank',
+                    grid: 'bg-math-grid',
+                    dots: 'bg-math-dots',
+                    numberline: 'bg-math-numberline',
+                    vertical: 'bg-math-vertical'
+                };
+                currentDrawBgClass = bgMap[bgType] || 'bg-math-grid';
+
+                ['bg-math-blank', 'bg-math-grid', 'bg-math-dots', 'bg-math-numberline', 'bg-math-vertical'].forEach(cls => {
+                    wrapper.classList.remove(cls);
+                    zoomPreview.classList.remove(cls);
+                });
+                wrapper.classList.add(currentDrawBgClass);
+                zoomPreview.classList.add(currentDrawBgClass);
+
+                if (role === 'teacher') {
+                    document.getElementById('t-draw-bg-select').value = bgType;
+                }
+            });
+
+            // G. 監聽簡報教材與頁碼 (presentation)
+            onValue(ref(db, `rooms/${currentRoom}/presentation`), (snap) => {
+                const pres = snap.val();
+                const waitingEl = document.getElementById('pdf-waiting');
+                const imgEl = document.getElementById('slide-image');
+
+                if (!pres || !pres.fileData) {
+                    waitingEl.classList.remove('hidden');
+                    pdfCanvas.classList.add('hidden');
+                    imgEl.classList.add('hidden');
+                    return;
+                }
+
+                waitingEl.classList.add('hidden');
+
+                if (pres.fileType === 'image') {
+                    pdfCanvas.classList.add('hidden');
+                    imgEl.src = pres.fileData;
+                    imgEl.classList.remove('hidden');
+                    document.getElementById('pdf-page-controls').classList.add('hidden');
+                } else {
+                    imgEl.classList.add('hidden');
+                    pdfCanvas.classList.remove('hidden');
+                    document.getElementById('pdf-page-controls').classList.remove('hidden');
+
+                    pdfCurrentPageNum = pres.currentPage || 1;
+                    document.getElementById('page-num').innerText = pdfCurrentPageNum;
+
+                    if (currentLoadedDataUrl !== pres.fileData) {
+                        currentLoadedDataUrl = pres.fileData;
+                        loadPDFFromDataUrl(pres.fileData, pdfCurrentPageNum);
+                    } else if (pdfDoc) {
+                        renderPdfPage(pdfCurrentPageNum);
+                    }
+                }
+            });
+
+            // H. 監聽各活動題目文字並使用 KaTeX 渲染數學公式 (activity)
+            onValue(ref(db, `rooms/${currentRoom}/activity`), (snap) => {
+                const act = snap.val() || {};
+                if (act.mcqQuestion) {
+                    const el = document.getElementById('mcq-question-text');
+                    el.textContent = act.mcqQuestion;
+                    renderMathInElementSafe(el);
+                }
+                if (act.numpadQuestion) {
+                    const el = document.getElementById('numpad-question-text');
+                    el.textContent = act.numpadQuestion;
+                    renderMathInElementSafe(el);
+                }
+                if (act.drawQuestion) {
+                    const el = document.getElementById('draw-question-text');
+                    el.innerHTML = `<i class="fa-solid fa-pen-ruler text-teal-600 mr-2"></i><span></span>`;
+                    el.querySelector('span').textContent = act.drawQuestion;
+                    renderMathInElementSafe(el);
+                }
+                if (act.padletTopic) {
+                    const el = document.getElementById('padlet-topic-text');
+                    el.textContent = act.padletTopic;
+                    renderMathInElementSafe(el);
+                }
+            });
+
+            // I. 監聽選擇題作答 (mcqResponses)
+            onValue(ref(db, `rooms/${currentRoom}/mcqResponses`), (snap) => {
+                const responses = snap.val() || {};
+                const counts = { A: 0, B: 0, C: 0, D: 0 };
+                const listContainer = document.getElementById('mcq-student-list');
+                listContainer.innerHTML = '';
+
+                const sortedList = Object.values(responses).sort((a, b) => (a.seatNo || 99) - (b.seatNo || 99));
+                sortedList.forEach(res => {
+                    if (counts[res.choice] !== undefined) counts[res.choice]++;
+                    const badge = document.createElement('div');
+                    badge.className = "bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg flex justify-between items-center text-sm font-bold";
+                    badge.innerHTML = `<span class="truncate">${res.name}</span><span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-xs">${res.choice}</span>`;
+                    listContainer.appendChild(badge);
+                });
+
+                ['A', 'B', 'C', 'D'].forEach(k => {
+                    document.getElementById(`stat-${k}`).innerText = counts[k];
+                });
+            });
+
+            // J. 監聽算術鍵盤題作答 (numpadResponses)
+            onValue(ref(db, `rooms/${currentRoom}/numpadResponses`), async (snap) => {
+                const responses = snap.val() || {};
+                const actSnap = await get(ref(db, `rooms/${currentRoom}/activity/numpadAnswer`));
+                const stdAns = (actSnap.val() || "").trim();
+
+                const grid = document.getElementById('numpad-submissions-grid');
+                grid.innerHTML = '';
+
+                const sortedList = Object.values(responses).sort((a, b) => (a.seatNo || 99) - (b.seatNo || 99));
+                sortedList.forEach(res => {
+                    const isCorrect = stdAns !== "" && res.answer === stdAns;
+                    const card = document.createElement('div');
+                    card.className = "p-3 rounded-xl border bg-slate-50 flex flex-col justify-between";
+                    
+                    // 若答案包含分數 a/b，用 KaTeX 美化顯示
+                    let formattedAns = res.answer;
+                    if (/^\-?\d+\/\d+$/.test(res.answer)) {
+                        const [n, d] = res.answer.split('/');
+                        formattedAns = `$\\frac{${n}}{${d}}$`;
+                    }
+
+                    const displayAns = (role === 'teacher' || revealNumpadAnswers) 
+                        ? `<span class="ans-math-render text-xl font-black ${stdAns ? (isCorrect ? 'text-emerald-600' : 'text-rose-600') : 'text-indigo-700'}">${formattedAns}</span>`
+                        : `<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold">已提交 ✓</span>`;
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center text-xs text-slate-500 font-bold mb-1">
+                            <span>第 ${res.group} 組</span>
+                            ${(role === 'teacher' && stdAns) ? (isCorrect ? '<i class="fa-solid fa-check text-emerald-500"></i>' : '<i class="fa-solid fa-xmark text-rose-500"></i>') : ''}
+                        </div>
+                        <div class="font-bold text-slate-800 truncate mb-2">${res.name}</div>
+                        <div class="text-right">${displayAns}</div>
+                    `;
+                    grid.appendChild(card);
+                    renderMathInElementSafe(card);
+                });
+            });
+
+            // K. 監聽手寫畫板同步牆 (drawings) - 支援老師點擊放大檢視
+            onValue(ref(db, `rooms/${currentRoom}/drawings`), (snap) => {
+                const drawings = snap.val() || {};
+                if (Object.keys(drawings).length === 0 && role === 'student') {
+                    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                }
+                if (role !== 'teacher') return;
+
+                // 若老師正在放大檢視某位學生的畫板，同步更新放大圖
+                if (currentZoomedStudentKey && drawings[currentZoomedStudentKey]) {
+                    document.getElementById('zoom-draw-img').src = drawings[currentZoomedStudentKey].imageData;
+                }
+
+                const gallery = document.getElementById('draw-gallery-grid');
+                gallery.innerHTML = '';
+
+                const entries = Object.entries(drawings).sort((a, b) => (a[1].seatNo || 99) - (b[1].seatNo || 99));
+                entries.forEach(([stuKey, item]) => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white border-2 border-slate-200 hover:border-teal-500 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition cursor-pointer group";
+                    card.innerHTML = `
+                        <div class="bg-slate-100 group-hover:bg-teal-600 group-hover:text-white px-3 py-2 border-b flex justify-between items-center text-xs font-bold transition">
+                            <span>${item.name}</span>
+                            <span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded flex items-center gap-1">
+                                第 ${item.group} 組 <i class="fa-solid fa-expand ml-1"></i>
+                            </span>
+                        </div>
+                        <div class="${currentDrawBgClass} p-1">
+                            <img src="${item.imageData}" class="w-full h-44 object-contain" alt="學生手寫算式">
+                        </div>
+                    `;
+                    // 點擊放大學生畫板以便老師講評
+                    card.addEventListener('click', () => {
+                        currentZoomedStudentKey = stuKey;
+                        document.getElementById('zoom-student-name').innerText = item.name;
+                        document.getElementById('zoom-student-group').innerText = `第 ${item.group} 組`;
+                        document.getElementById('zoom-draw-img').src = item.imageData;
+                        document.getElementById('zoom-draw-modal').classList.remove('hidden');
+                    });
+                    gallery.appendChild(card);
+                });
+            });
+
+            // L. 監聽 Padlet 討論板 (padletBoard)
+            onValue(ref(db, `rooms/${currentRoom}/padletBoard`), (snap) => {
+                allPadletNotes = snap.val() || {};
+                renderPadletNotes();
+            });
+        }
+
+        // 關閉放大檢視畫板彈窗
+        document.getElementById('btn-close-zoom').addEventListener('click', () => {
+            currentZoomedStudentKey = null;
+            document.getElementById('zoom-draw-modal').classList.add('hidden');
+        });
+
+        // ==========================================
+        // 3. 教師頂部控場工具：鎖屏、計時器、4E抽籤、出席管理
+        // ==========================================
+        // A. 專注鎖屏切換
+        document.getElementById('btn-toggle-lock').addEventListener('click', async () => {
+            if (role !== 'teacher') return;
+            const snap = await get(ref(db, `rooms/${currentRoom}/isLocked`));
+            update(ref(db, `rooms/${currentRoom}`), { isLocked: !snap.val() });
+        });
+
+        // B. 倒數計時器選單
+        const timerMenuBtn = document.getElementById('btn-timer-menu');
+        const timerDropdown = document.getElementById('timer-dropdown');
+        timerMenuBtn.addEventListener('click', () => timerDropdown.classList.toggle('hidden'));
+        
+        document.querySelectorAll('.timer-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                timerDropdown.classList.add('hidden');
+                const sec = parseInt(btn.dataset.sec, 10);
+                if (sec === 0) {
+                    update(ref(db, `rooms/${currentRoom}/timer`), { active: false, endTime: 0 });
+                } else {
+                    update(ref(db, `rooms/${currentRoom}/timer`), {
+                        active: true,
+                        duration: sec,
+                        endTime: Date.now() + sec * 1000
+                    });
+                }
+            });
+        });
+
+        // C. 4E 班隨機抽籤器
+        document.getElementById('btn-open-picker').addEventListener('click', () => {
+            if (role !== 'teacher') return;
+            update(ref(db, `rooms/${currentRoom}/picker`), {
+                active: true,
+                status: 'ready',
+                winnerSeat: null,
+                winnerName: '準備抽籤'
+            });
+        });
+
+        document.getElementById('btn-trigger-roll').addEventListener('click', () => {
+            const onlineOnly = document.getElementById('picker-online-only').checked;
+            const noRepeat = document.getElementById('picker-no-repeat').checked;
+
+            let candidateSeats = [];
+            for (let no = 1; no <= 32; no++) {
+                if (onlineOnly && !onlineStudentsCache[`seat_${no}`]) continue;
+                if (noRepeat && pickedHistorySet.has(no)) continue;
+                candidateSeats.push(no);
+            }
+
+            if (candidateSeats.length === 0) {
+                alert("符合條件的學生已全部抽完（或目前無人在線）！系統將自動重置抽籤池。");
+                pickedHistorySet.clear();
+                return;
+            }
+
+            // 先廣播滾動動畫狀態
+            update(ref(db, `rooms/${currentRoom}/picker`), {
+                active: true,
+                status: 'rolling'
+            });
+
+            setTimeout(() => {
+                const winnerSeat = candidateSeats[Math.floor(Math.random() * candidateSeats.length)];
+                if (noRepeat) pickedHistorySet.add(winnerSeat);
+                update(ref(db, `rooms/${currentRoom}/picker`), {
+                    active: true,
+                    status: 'picked',
+                    winnerSeat: winnerSeat,
+                    winnerName: CLASS_4E_ROSTER[winnerSeat]
+                });
+            }, 1100);
+        });
+
+        document.getElementById('btn-reset-picker-pool').addEventListener('click', () => {
+            pickedHistorySet.clear();
+            alert("已重置抽籤紀錄，1-32 號全員重新納入抽籤池！");
+        });
+
+        document.getElementById('btn-close-picker').addEventListener('click', () => {
+            update(ref(db, `rooms/${currentRoom}/picker`), { active: false });
+        });
+
+        // D. 4E 班出席與釋放學號管理彈窗
+        document.getElementById('btn-open-roster').addEventListener('click', () => {
+            document.getElementById('roster-modal').classList.remove('hidden');
+            renderRosterModalGrid();
+        });
+        document.getElementById('btn-close-roster').addEventListener('click', () => {
+            document.getElementById('roster-modal').classList.add('hidden');
+        });
+
+        function renderRosterModalGrid() {
+            const grid = document.getElementById('roster-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            for (let no = 1; no <= 32; no++) {
+                const seatKey = `seat_${no}`;
+                const stu = onlineStudentsCache[seatKey];
+                const padNo = String(no).padStart(2, '0');
+                const card = document.createElement('div');
+                
+                if (stu) {
+                    card.className = "p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-400 flex flex-col justify-between cursor-pointer hover:bg-rose-50 hover:border-rose-400 transition group";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center text-[11px] font-bold text-emerald-700 group-hover:text-rose-600">
+                            <span>${padNo} 號</span>
+                            <span>第 ${stu.group} 組</span>
+                        </div>
+                        <div class="font-black text-slate-800 text-sm my-1">${CLASS_4E_ROSTER[no]}</div>
+                        <div class="text-[10px] font-bold text-emerald-600 group-hover:text-rose-600">
+                            ${role === 'teacher' ? '點擊釋放學號' : '在線 ●'}
+                        </div>
+                    `;
+                    if (role === 'teacher') {
+                        card.onclick = () => {
+                            if (confirm(`確定要強制登出「${padNo}號 ${CLASS_4E_ROSTER[no]}」並釋放此學號嗎？`)) {
+                                remove(ref(db, `rooms/${currentRoom}/students/${seatKey}`));
+                            }
+                        };
+                    }
+                } else {
+                    card.className = "p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex flex-col justify-between opacity-60";
+                    card.innerHTML = `
+                        <div class="text-[11px] font-bold text-slate-400">${padNo} 號</div>
+                        <div class="font-bold text-slate-500 text-sm my-1">${CLASS_4E_ROSTER[no]}</div>
+                        <div class="text-[10px] text-slate-400">未登入</div>
+                    `;
+                }
+                grid.appendChild(card);
+            }
+        }
+
+        // ==========================================
+        // 4. 教師底部視圖切換與出題控制
+        // ==========================================
+        document.querySelectorAll('.mode-switch-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (role !== 'teacher') return;
+                update(ref(db, `rooms/${currentRoom}`), { currentView: btn.dataset.mode });
+            });
+        });
+
+        document.getElementById('btn-push-mcq').addEventListener('click', () => {
+            const q = document.getElementById('t-mcq-q').value.trim() || "請根據老師的題目選出正確答案";
+            update(ref(db, `rooms/${currentRoom}/activity`), { mcqQuestion: q });
+            remove(ref(db, `rooms/${currentRoom}/mcqResponses`));
+        });
+
+        document.getElementById('btn-push-numpad').addEventListener('click', () => {
+            const q = document.getElementById('t-numpad-q').value.trim();
+            const ans = document.getElementById('t-numpad-ans').value.trim();
+            if (!q) return alert("請輸入算術題目！");
+            update(ref(db, `rooms/${currentRoom}/activity`), { numpadQuestion: q, numpadAnswer: ans });
+            remove(ref(db, `rooms/${currentRoom}/numpadResponses`));
+        });
+
+        document.getElementById('btn-toggle-reveal').addEventListener('click', () => {
+            revealNumpadAnswers = !revealNumpadAnswers;
+            get(ref(db, `rooms/${currentRoom}/numpadResponses`)).then(() => {});
+        });
+
+        document.getElementById('btn-push-draw').addEventListener('click', () => {
+            const q = document.getElementById('t-draw-q').value.trim();
+            if (q) update(ref(db, `rooms/${currentRoom}/activity`), { drawQuestion: q });
+        });
+
+        document.getElementById('t-draw-bg-select').addEventListener('change', (e) => {
+            if (role !== 'teacher') return;
+            update(ref(db, `rooms/${currentRoom}`), { drawBg: e.target.value });
+        });
+
+        document.getElementById('btn-clear-all-draws').addEventListener('click', () => {
+            if (confirm("確定要清空全班學生的畫板嗎？")) {
+                remove(ref(db, `rooms/${currentRoom}/drawings`));
+            }
+        });
+
+        document.getElementById('btn-push-padlet').addEventListener('click', () => {
+            const q = document.getElementById('t-padlet-q').value.trim();
+            if (q) update(ref(db, `rooms/${currentRoom}/activity`), { padletTopic: q });
+        });
+        document.getElementById('btn-clear-padlet').addEventListener('click', () => {
+            if (confirm("確定要清空討論板上所有便利貼嗎？")) {
+                remove(ref(db, `rooms/${currentRoom}/padletBoard`));
+            }
+        });
+
+        // ==========================================
+        // 5. 簡報與圖片渲染模組 (PDF.js)
+        // ==========================================
+        document.getElementById('file-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 8 * 1024 * 1024) {
+                alert("檔案超過 8MB，建議使用較小的 PDF 或圖片以確保全班秒速同步！");
+            }
+            const isImage = file.type.startsWith('image/');
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                update(ref(db, `rooms/${currentRoom}/presentation`), {
+                    fileType: isImage ? 'image' : 'pdf',
+                    fileData: evt.target.result,
+                    currentPage: 1
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function loadPDFFromDataUrl(dataUrl, pageNum) {
+            const base64Index = dataUrl.indexOf(';base64,') + 8;
+            const raw = window.atob(dataUrl.substring(base64Index));
+            const uint8Array = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) uint8Array[i] = raw.charCodeAt(i);
+
+            pdfjsLib.getDocument({ data: uint8Array }).promise.then(pdf => {
+                pdfDoc = pdf;
+                document.getElementById('page-count').innerText = pdf.numPages;
+                renderPdfPage(pageNum);
+            });
+        }
+
+        function renderPdfPage(num) {
+            if (!pdfDoc) return;
+            pdfDoc.getPage(num).then(page => {
+                const container = document.getElementById('pdf-container');
+                const containerWidth = Math.max(container.clientWidth - 32, 320);
+                const unscaledViewport = page.getViewport({ scale: 1 });
+                const scale = Math.min((containerWidth / unscaledViewport.width), 2.0);
+                const viewport = page.getViewport({ scale });
+
+                pdfCanvas.height = viewport.height;
+                pdfCanvas.width = viewport.width;
+
+                if (pdfRenderTask) pdfRenderTask.cancel();
+                pdfRenderTask = page.render({ canvasContext: pdfCtx, viewport });
+            });
+        }
+
+        document.getElementById('btn-prev-page').addEventListener('click', () => {
+            if (role !== 'teacher' || !pdfDoc || pdfCurrentPageNum <= 1) return;
+            update(ref(db, `rooms/${currentRoom}/presentation`), { currentPage: pdfCurrentPageNum - 1 });
+        });
+        document.getElementById('btn-next-page').addEventListener('click', () => {
+            if (role !== 'teacher' || !pdfDoc || pdfCurrentPageNum >= pdfDoc.numPages) return;
+            update(ref(db, `rooms/${currentRoom}/presentation`), { currentPage: pdfCurrentPageNum + 1 });
+        });
+
+        // ==========================================
+        // 6. 選擇題與算術虛擬鍵盤模組 (含分數預覽)
+        // ==========================================
+        document.querySelectorAll('.mcq-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const choice = btn.dataset.choice;
+                set(ref(db, `rooms/${currentRoom}/mcqResponses/${clientId}`), {
+                    seatNo: userInfo.seatNo,
+                    name: userInfo.name,
+                    group: userInfo.group,
+                    choice: choice,
+                    timestamp: Date.now()
+                });
+                playBeep(660, 0.08, 'sine');
+                document.getElementById('my-mcq-ans').innerText = choice;
+                document.getElementById('mcq-submitted-msg').classList.remove('hidden');
+            });
+        });
+
+        const answerInput = document.getElementById('math-answer-display');
+        const katexPreview = document.getElementById('numpad-katex-preview');
+        const mathKeys = [
+            '7', '8', '9', '⌫',
+            '4', '5', '6', '/',
+            '1', '2', '3', '.',
+            'C', '0', '-', '送出'
+        ];
+        const padContainer = document.getElementById('virtual-numpad-container');
+
+        function updateNumpadPreview() {
+            const v = answerInput.value.trim();
+            if (/^\-?\d+\/\d+$/.test(v)) {
+                const [n, d] = v.split('/');
+                katexPreview.textContent = `分數預覽：$\\frac{${n}}{${d}}$`;
+                renderMathInElementSafe(katexPreview);
+            } else {
+                katexPreview.textContent = '';
+            }
+        }
+
+        mathKeys.forEach(key => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = "py-3.5 text-xl font-black rounded-xl shadow-sm transition active:scale-95 ";
+
+            if (key === 'C') {
+                btn.className += "bg-rose-100 text-rose-600 hover:bg-rose-200";
+                btn.onclick = () => { answerInput.value = ''; updateNumpadPreview(); };
+            } else if (key === '⌫') {
+                btn.className += "bg-amber-100 text-amber-700 hover:bg-amber-200";
+                btn.onclick = () => { answerInput.value = answerInput.value.slice(0, -1); updateNumpadPreview(); };
+            } else if (key === '送出') {
+                btn.className += "bg-blue-600 text-white hover:bg-blue-700 shadow-md";
+                btn.onclick = submitNumpadAnswer;
+            } else {
+                btn.className += "bg-white text-slate-800 hover:bg-slate-50 border border-slate-200";
+                btn.onclick = () => { answerInput.value += key; updateNumpadPreview(); };
+            }
+            btn.innerText = key;
+            padContainer.appendChild(btn);
+        });
+
+        function submitNumpadAnswer() {
+            const val = answerInput.value.trim();
+            if (!val) return;
+            set(ref(db, `rooms/${currentRoom}/numpadResponses/${clientId}`), {
+                seatNo: userInfo.seatNo,
+                name: userInfo.name,
+                group: userInfo.group,
+                answer: val,
+                timestamp: Date.now()
+            });
+            playBeep(784, 0.1, 'sine');
+            const fb = document.getElementById('numpad-feedback');
+            fb.innerText = `已成功提交答案：${val}`;
+            fb.className = "mt-3 text-center py-2 rounded-lg font-bold text-sm bg-emerald-100 text-emerald-700 block";
+        }
+
+        // ==========================================
+        // 7. 電子手寫計算板模組 (透明圖層疊加在數學網格背景上)
+        // ==========================================
+        function resizeDrawCanvas() {
+            const wrapper = document.getElementById('draw-wrapper');
+            if (!wrapper || wrapper.clientWidth === 0) return;
+
+            let tempCanvas = null;
+            if (drawCanvas.width > 0 && drawCanvas.height > 0) {
+                tempCanvas = document.createElement('canvas');
+                tempCanvas.width = drawCanvas.width;
+                tempCanvas.height = drawCanvas.height;
+                tempCanvas.getContext('2d').drawImage(drawCanvas, 0, 0);
+            }
+
+            drawCanvas.width = wrapper.clientWidth;
+            drawCanvas.height = wrapper.clientHeight;
+
+            if (tempCanvas) {
+                drawCtx.drawImage(tempCanvas, 0, 0);
+            }
+            applyBrushStyle();
+        }
+
+        function applyBrushStyle() {
+            drawCtx.lineCap = 'round';
+            drawCtx.lineJoin = 'round';
+            // 使用 destination-out 實現真正透明擦膠，不會擦掉底層數學方格紙
+            drawCtx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+            drawCtx.lineWidth = isEraser ? 26 : 4;
+            drawCtx.strokeStyle = strokeColor;
+        }
+
+        window.addEventListener('resize', () => {
+            if (currentActiveView === 'draw') resizeDrawCanvas();
+        });
+
+        function getPointerPos(e) {
+            const rect = drawCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startDraw(e) {
+            e.preventDefault();
+            if (drawCanvas.width === 0) resizeDrawCanvas();
+            isDrawing = true;
+            applyBrushStyle();
+            const pos = getPointerPos(e);
+            drawCtx.beginPath();
+            drawCtx.moveTo(pos.x, pos.y);
+        }
+
+        function moveDraw(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getPointerPos(e);
+            drawCtx.lineTo(pos.x, pos.y);
+            drawCtx.stroke();
+        }
+
+        function endDraw() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            drawCtx.closePath();
+            syncDrawingToFirebase();
+        }
+
+        function syncDrawingToFirebase() {
+            if (!currentRoom) return;
+            const dataUrl = drawCanvas.toDataURL('image/png');
+            set(ref(db, `rooms/${currentRoom}/drawings/${clientId}`), {
+                seatNo: userInfo.seatNo,
+                name: userInfo.name,
+                group: userInfo.group,
+                imageData: dataUrl,
+                timestamp: Date.now()
+            });
+        }
+
+        drawCanvas.addEventListener('mousedown', startDraw);
+        drawCanvas.addEventListener('mousemove', moveDraw);
+        drawCanvas.addEventListener('mouseup', endDraw);
+        drawCanvas.addEventListener('mouseleave', endDraw);
+        drawCanvas.addEventListener('touchstart', startDraw, { passive: false });
+        drawCanvas.addEventListener('touchmove', moveDraw, { passive: false });
+        drawCanvas.addEventListener('touchend', endDraw);
+
+        document.querySelectorAll('.draw-color').forEach(btn => {
+            btn.addEventListener('click', () => {
+                isEraser = false;
+                strokeColor = btn.dataset.color;
+                document.querySelectorAll('.draw-color').forEach(b => b.classList.remove('ring-2', 'ring-offset-2', 'ring-indigo-500'));
+                btn.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-500');
+                document.getElementById('btn-eraser').classList.remove('bg-indigo-600', 'text-white');
+            });
+        });
+
+        document.getElementById('btn-eraser').addEventListener('click', function() {
+            isEraser = !isEraser;
+            this.classList.toggle('bg-indigo-600', isEraser);
+            this.classList.toggle('text-white', isEraser);
+        });
+
+        document.getElementById('btn-clear-draw').addEventListener('click', () => {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            syncDrawingToFirebase();
+        });
+
+        // ==========================================
+        // 8. Padlet 小組討論板模組 (支援 KaTeX 公式渲染)
+        // ==========================================
+        document.getElementById('padlet-img-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    const offCanvas = document.createElement('canvas');
+                    const maxW = 600;
+                    const scale = img.width > maxW ? maxW / img.width : 1;
+                    offCanvas.width = img.width * scale;
+                    offCanvas.height = img.height * scale;
+                    offCanvas.getContext('2d').drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+                    pendingPadletImage = offCanvas.toDataURL('image/jpeg', 0.75);
+                    document.getElementById('padlet-img-label').innerText = "已準備圖片 ✓";
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('btn-add-note').addEventListener('click', () => {
+            const inputEl = document.getElementById('padlet-input');
+            const text = inputEl.value.trim();
+            if (!text && !pendingPadletImage) return alert("請輸入文字或選擇圖片！");
+
+            push(ref(db, `rooms/${currentRoom}/padletBoard`), {
+                text: text,
+                imageUrl: pendingPadletImage,
+                author: userInfo.name,
+                group: userInfo.group,
+                timestamp: Date.now()
+            });
+
+            inputEl.value = '';
+            pendingPadletImage = '';
+            document.getElementById('padlet-img-input').value = '';
+            document.getElementById('padlet-img-label').innerText = "附加圖片";
+        });
+
+        document.getElementById('padlet-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-add-note').click();
+        });
+
+        document.getElementById('padlet-group-filter').addEventListener('change', renderPadletNotes);
+
+        function renderPadletNotes() {
+            const container = document.getElementById('padlet-container');
+            const filterGroup = document.getElementById('padlet-group-filter').value;
+            container.innerHTML = '';
+
+            const colors = [
+                'bg-amber-100/90 border-amber-200',
+                'bg-emerald-100/90 border-emerald-200',
+                'bg-sky-100/90 border-sky-200',
+                'bg-rose-100/90 border-rose-200',
+                'bg-violet-100/90 border-violet-200',
+                'bg-orange-100/90 border-orange-200'
+            ];
+
+            const entries = Object.entries(allPadletNotes).reverse();
+            entries.forEach(([key, note]) => {
+                if (filterGroup !== 'all' && String(note.group) !== filterGroup) return;
+
+                const colorClass = note.group === 'T' 
+                    ? 'bg-indigo-100 border-indigo-300 ring-2 ring-indigo-400' 
+                    : colors[(parseInt(note.group) || 1) % colors.length];
+
+                const noteEl = document.createElement('div');
+                noteEl.className = `sticky-note ${colorClass} p-4 rounded-2xl shadow-md border flex flex-col gap-3`;
+                
+                const groupLabel = note.group === 'T' ? '👑 老師示範' : `第 ${note.group} 組`;
+                const deleteBtn = role === 'teacher' 
+                    ? `<button data-key="${key}" class="del-note-btn text-slate-400 hover:text-rose-600 ml-2"><i class="fa-solid fa-trash-can"></i></button>` 
+                    : '';
+
+                noteEl.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-black/10 pb-2">
+                        <span class="font-black text-slate-800 text-sm">${groupLabel}</span>
+                        <div class="flex items-center">
+                            <span class="text-xs font-bold text-slate-600 bg-white/70 px-2.5 py-0.5 rounded-full">${note.author}</span>
+                            ${deleteBtn}
+                        </div>
+                    </div>
+                    <p class="note-text-body text-slate-800 font-semibold text-base whitespace-pre-wrap break-words"></p>
+                    ${note.imageUrl ? `<img src="${note.imageUrl}" class="w-full rounded-xl shadow-sm border border-white/50 object-cover max-h-56 cursor-pointer" onclick="window.open(this.src)">` : ''}
+                `;
+
+                const textP = noteEl.querySelector('.note-text-body');
+                if (note.text) {
+                    textP.textContent = note.text;
+                    renderMathInElementSafe(textP);
+                } else {
+                    textP.remove();
+                }
+
+                container.appendChild(noteEl);
+            });
+
+            document.querySelectorAll('.del-note-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    remove(ref(db, `rooms/${currentRoom}/padletBoard/${btn.dataset.key}`));
+                });
+            });
+        }
+    </script>
+</body>
+</html>
